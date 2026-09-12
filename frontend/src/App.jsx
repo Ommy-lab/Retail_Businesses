@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
+import { ThemeProvider } from './context/ThemeContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { AppLayout } from './components/layout/AppLayout';
 
@@ -14,59 +15,62 @@ import { Settings } from './pages/business/Settings';
 
 export const App = () => {
     return (
-        <AuthProvider>
-            <Router>
-                <Routes>
-                    <Route path="/login" element={<Login />} />
+        <ThemeProvider>
+            <AuthProvider>
+                <Router>
+                    <Routes>
+                        <Route path="/login" element={<Login />} />
 
-                    {/* Super Admin Route */}
-                    <Route 
-                        path="/admin/dashboard" 
-                        element={
-                            <ProtectedRoute allowedRole="super_admin">
-                                <AppLayout><AdminDashboard /></AppLayout>
-                            </ProtectedRoute>
-                        } 
-                    />
+                        {/* Super Admin Route */}
+                        <Route 
+                            path="/admin/dashboard" 
+                            element={
+                                <ProtectedRoute allowedRole="super_admin">
+                                    <AppLayout><AdminDashboard /></AppLayout>
+                                </ProtectedRoute>
+                            } 
+                        />
 
-                    {/* Business Tenant Routes */}
-                    <Route 
-                        path="/business/dashboard" 
-                        element={
-                            <ProtectedRoute allowedRole="business_user">
-                                <AppLayout><BusinessDashboard /></AppLayout>
-                            </ProtectedRoute>
-                        } 
-                    />
-                    <Route 
-                        path="/business/transactions" 
-                        element={
-                            <ProtectedRoute allowedRole="business_user">
-                                <AppLayout><Transactions /></AppLayout>
-                            </ProtectedRoute>
-                        } 
-                    />
-                    <Route 
-                        path="/business/reports" 
-                        element={
-                            <ProtectedRoute allowedRole="business_user">
-                                <AppLayout><Reports /></AppLayout>
-                            </ProtectedRoute>
-                        } 
-                    />
-                    <Route 
-                        path="/business/settings" 
-                        element={
-                            <ProtectedRoute allowedRole="business_user">
-                                <AppLayout><Settings /></AppLayout>
-                            </ProtectedRoute>
-                        } 
-                    />
+                        {/* Business Tenant Routes */}
+                        <Route 
+                            path="/business/dashboard" 
+                            element={
+                                <ProtectedRoute allowedRole="business_user">
+                                    <AppLayout><BusinessDashboard /></AppLayout>
+                                </ProtectedRoute>
+                            } 
+                        />
+                        <Route 
+                            path="/business/transactions" 
+                            element={
+                                <ProtectedRoute allowedRole="business_user">
+                                    <AppLayout><Transactions /></AppLayout>
+                                </ProtectedRoute>
+                            } 
+                        />
+                        <Route 
+                            path="/business/reports" 
+                            element={
+                                <ProtectedRoute allowedRole="business_user">
+                                    <AppLayout><Reports /></AppLayout>
+                                </ProtectedRoute>
+                            } 
+                        />
+                        <Route 
+                            path="/business/settings" 
+                            element={
+                                <ProtectedRoute allowedRole="business_user">
+                                    <AppLayout><Settings /></AppLayout>
+                                </ProtectedRoute>
+                            } 
+                        />
 
-                    <Route path="*" element={<Navigate to="/login" replace />} />
-                </Routes>
-            </Router>
-        </AuthProvider>
+                        {/* Fallback Redirect */}
+                        <Route path="*" element={<Navigate to="/login" replace />} />
+                    </Routes>
+                </Router>
+            </AuthProvider>
+        </ThemeProvider>
     );
 };
 

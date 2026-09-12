@@ -1,192 +1,533 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import API from '../../services/api';
-import { Building, UserPlus, ShieldAlert, ShieldCheck, Archive, DollarSign, Activity } from 'lucide-react';
+import { Modal } from '../../components/common/Modal';
+import { formatDate } from '../../utils/formatters';
+import { 
+    Building2, 
+    UserPlus, 
+    Shield, 
+    Archive, 
+    Search, 
+    CheckCircle2, 
+    AlertCircle, 
+    FileText, 
+    Calendar, 
+    Layers, 
+    Users,
+    ExternalLink
+} from 'lucide-react';
 
 export const AdminDashboard = () => {
     const [dashboard, setDashboard] = useState(null);
     const [loading, setLoading] = useState(true);
-    const [modal, setModal] = useState(false);
     const [search, setSearch] = useState('');
-    
-    // New Business Form State
-    const [name, setName] = useState('');
-    const [username, setUsername] = useState('');
-    const [password, setPassword] = useState('');
+    const [tabFilter, setTabFilter] = useState('all'); // 'all', 'active', 'archived'
 
-    const fetchDashboard = async () => {
+    // Modal: Register Business
+    const [registerModal, setRegisterModal] = useState(false);
+    const [newBizName, setNewBizName] = useState('');
+    const [newUsername, setNewUsername] = useState('');
+    const [newPassword, setNewPassword] = useState('');
+    const [registerLoading, setRegisterLoading] = useState(false);
+
+    // Modal: Tenant Reports inspection
+    const [reportsModal, setReportsModal] = useState(false);
+    const [selectedTenantReport, setSelectedTenantReport] = useState(null);
+    const [reportsLoading, setReportsLoading] = useState(false);
+
+    // Notifications
+    const [statusMessage, setStatusMessage] = useState({ type: '', text: '' });
+
+    const fetchAdminDashboard = useCallback(async () => {
         try {
             const res = await API.get('/admin/dashboard');
             setDashboard(res.data);
         } catch (err) {
             console.error("Failed to load admin metrics:", err);
+            setStatusMessage({ type: 'error', text: err.response?.data?.error || 'Failed to fetch admin metrics.' });
         } finally {
             setLoading(false);
         }
-    };
-
-    useEffect(() => {
-        fetchDashboard();
     }, []);
 
-    const handleCreateBusiness = async (e) => {
+    useEffect(() => {
+        fetchAdminDashboard();
+    }, [fetchAdminDashboard]);
+
+    // Handle Business Registration
+    const handleRegisterBusiness = async (e) => {
         e.preventDefault();
+        setRegisterLoading(true);
         try {
-            await API.post('/admin/businesses', { name, username, password });
-            setName(''); setUsername(''); setPassword('');
-            setModal(false);
-            fetchDashboard();
+            await API.post('/admin/businesses', {
+                name: newBizName,
+                username: newUsername,
+                password: newPassword
+            });
+            setNewBizName('');
+            setNewUsername('');
+            setNewPassword('');
+            setRegisterModal(false);
+            setStatusMessage({ type: 'success', text: `New business "${newBizName}" onboarded successfully.` });
+            setTimeout(() => setStatusMessage({ type: '', text: '' }), 4000);
+            await fetchAdminDashboard();
         } catch (err) {
-            alert(err.response?.data?.error || 'Failed to create business.');
+            alert(err.response?.data?.error || 'Failed to register business tenant.');
+        } finally {
+            setRegisterLoading(false);
         }
     };
 
-    const handleToggleStatus = async (businessId, currentStatus) => {
-        try {
-            await API.patch(`/admin/businesses/${businessId}/status`, { is_active: !currentStatus });
-            fetchDashboard();
-        } catch (err) {
-            alert(err.response?.data?.error || 'Failed to update tenant status.');
+    // Handle Archive Business
+    const handleArchive = async (businessId, bizName) => {
+        if (!window.confirm(`Are you sure you want to archive "${bizName}"? Tenant login will be permanently disabled.`)) {
+            return;
         }
-    };
-
-    const handleArchive = async (businessId) => {
-        if (!window.confirm("Are you sure you want to archive this tenant? Access will be permanently disabled.")) return;
         try {
             await API.patch(`/admin/businesses/${businessId}/archive`);
-            fetchDashboard();
+            setStatusMessage({ type: 'success', text: `Business "${bizName}" has been safely archived.` });
+            setTimeout(() => setStatusMessage({ type: '', text: '' }), 4000);
+            await fetchAdminDashboard();
         } catch (err) {
-            alert(err.response?.data?.error || 'Failed to archive tenant.');
+            alert(err.response?.data?.error || 'Failed to archive business.');
         }
     };
 
-    if (loading) return <div className="p-8 text-center text-slate-500">Loading platform analytics...</div>;
+    // View Tenant Financial / Session History
+    const handleViewReports = async (businessId) => {
+        setReportsLoading(true);
+        setReportsModal(true);
+        try {
+            const res = await API.get(`/admin/businesses/${businessId}/reports`);
+            setSelectedTenantReport(res.data);
+        } catch (err) {
+            alert(err.response?.data?.error || 'Failed to load business session records.');
+            setReportsModal(false);
+        } finally {
+            setReportsLoading(false);
+        }
+    };
 
     const businesses = dashboard?.businesses || [];
-    const filteredBusinesses = businesses.filter(b => 
-        b.name?.toLowerCase().includes(search.toLowerCase()) || 
-        b.username?.toLowerCase().includes(search.toLowerCase())
-    );
 
-    const activeCount = businesses.filter(b => b.is_active).length;
-    const suspendedCount = businesses.length - activeCount;
+    // Filter by Tab and Search
+    const filteredBusinesses = businesses.filter(b => {
+        if (tabFilter === 'active' && b.is_archived) return false;
+        if (tabFilter === 'archived' && !b.is_archived) return false;
+
+        const query = search.toLowerCase();
+        const nameMatch = (b.name || '').toLowerCase().includes(query);
+        const userMatch = (b.username || '').toLowerCase().includes(query);
+        return nameMatch || userMatch;
+    });
+
+    const totalBusinesses = dashboard?.totalBusinesses || businesses.length;
+    const archivedCount = businesses.filter(b => b.is_archived).length;
+    const activeCount = totalBusinesses - archivedCount;
+    const totalSessions = businesses.reduce((acc, b) => acc + parseInt(b.total_sessions || 0), 0);
 
     return (
-        <div className="p-8 max-w-7xl mx-auto space-y-6">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+            {/* Header Section */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '1.25rem' }}>
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-900">Super Admin Control Center</h1>
-                    <p className="text-sm text-slate-500">Monitor multi-tenant activity, platform statistics, and status controls</p>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.35rem' }}>
+                        <span className="badge-blue">
+                            <Shield size={13} /> Global Control
+                        </span>
+                        <span className="badge-outline">Multi-Tenant Management</span>
+                    </div>
+                    <h1 style={{ fontSize: '1.9rem', fontWeight: 800, margin: 0 }}>
+                        Super Admin Center
+                    </h1>
+                    <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', margin: '0.3rem 0 0' }}>
+                        Provision new retail businesses, monitor session counts, and audit tenant records.
+                    </p>
                 </div>
-                <button onClick={() => setModal(true)} className="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors">
-                    <UserPlus size={16} /> Register New Business
+
+                {/* Primary Action: Register New Business */}
+                <button 
+                    onClick={() => setRegisterModal(true)}
+                    className="btn-primary"
+                    style={{ padding: '0.75rem 1.5rem', fontSize: '0.9rem' }}
+                >
+                    <UserPlus size={18} /> Register New Business
                 </button>
             </div>
 
-            {/* Global Metric Cards Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="bg-white p-5 rounded-xl border border-slate-100 shadow-sm">
-                    <div className="flex items-center justify-between">
-                        <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Businesses</p>
-                        <Building size={18} className="text-slate-400" />
-                    </div>
-                    <p className="text-3xl font-bold text-slate-900 mt-2">{dashboard?.totalBusinesses || 0}</p>
+            {/* Notification alert */}
+            {statusMessage.text && (
+                <div className="animate-fade-in" style={{
+                    backgroundColor: 'var(--bg-surface)',
+                    border: '1px solid var(--border-main)',
+                    borderLeft: statusMessage.type === 'error' ? '4px solid var(--blue-700)' : '4px solid var(--blue-500)',
+                    padding: '1rem 1.5rem',
+                    borderRadius: 'var(--radius-md)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.75rem',
+                    color: 'var(--text-primary)'
+                }}>
+                    {statusMessage.type === 'error' ? (
+                        <AlertCircle size={20} style={{ color: 'var(--blue-700)', flexShrink: 0 }} />
+                    ) : (
+                        <CheckCircle2 size={20} style={{ color: 'var(--blue-500)', flexShrink: 0 }} />
+                    )}
+                    <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>{statusMessage.text}</span>
                 </div>
-                <div className="bg-white p-5 rounded-xl border border-slate-100 shadow-sm">
-                    <div className="flex items-center justify-between">
-                        <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Active Tenants</p>
-                        <ShieldCheck size={18} className="text-emerald-500" />
+            )}
+
+            {/* Platform Metrics Cards */}
+            <div className="metrics-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: '1.25rem' }}>
+                <div className="blue-card" style={{ padding: '1.5rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <div>
+                            <span style={{ fontSize: '0.725rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-muted)' }}>
+                                Total Businesses
+                            </span>
+                            <h2 style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--text-primary)', margin: '0.35rem 0 0' }}>
+                                {totalBusinesses}
+                            </h2>
+                        </div>
+                        <div style={{ padding: '0.65rem', borderRadius: 'var(--radius-md)', backgroundColor: 'var(--blue-100)', color: 'var(--blue-600)' }}>
+                            <Building2 size={20} />
+                        </div>
                     </div>
-                    <p className="text-3xl font-bold text-emerald-600 mt-2">{activeCount}</p>
+                    <div style={{ marginTop: '1rem', paddingTop: '0.75rem', borderTop: '1px solid var(--border-subtle)', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                        Registered platform accounts
+                    </div>
                 </div>
-                <div className="bg-white p-5 rounded-xl border border-slate-100 shadow-sm">
-                    <div className="flex items-center justify-between">
-                        <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Suspended Tenants</p>
-                        <ShieldAlert size={18} className="text-rose-500" />
+
+                <div className="blue-card" style={{ padding: '1.5rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <div>
+                            <span style={{ fontSize: '0.725rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-muted)' }}>
+                                Active Tenants
+                            </span>
+                            <h2 style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--blue-600)', margin: '0.35rem 0 0' }}>
+                                {activeCount}
+                            </h2>
+                        </div>
+                        <div style={{ padding: '0.65rem', borderRadius: 'var(--radius-md)', backgroundColor: 'var(--bg-subtle)', color: 'var(--blue-600)' }}>
+                            <CheckCircle2 size={20} />
+                        </div>
                     </div>
-                    <p className="text-3xl font-bold text-rose-600 mt-2">{suspendedCount}</p>
+                    <div style={{ marginTop: '1rem', paddingTop: '0.75rem', borderTop: '1px solid var(--border-subtle)', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                        Operational retail stores
+                    </div>
+                </div>
+
+                <div className="blue-card" style={{ padding: '1.5rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <div>
+                            <span style={{ fontSize: '0.725rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-muted)' }}>
+                                Archived Accounts
+                            </span>
+                            <h2 style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--text-secondary)', margin: '0.35rem 0 0' }}>
+                                {archivedCount}
+                            </h2>
+                        </div>
+                        <div style={{ padding: '0.65rem', borderRadius: 'var(--radius-md)', backgroundColor: 'var(--bg-subtle)', color: 'var(--text-muted)' }}>
+                            <Archive size={20} />
+                        </div>
+                    </div>
+                    <div style={{ marginTop: '1rem', paddingTop: '0.75rem', borderTop: '1px solid var(--border-subtle)', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                        Decommissioned organizations
+                    </div>
+                </div>
+
+                <div className="blue-card" style={{ padding: '1.5rem', background: 'var(--blue-gradient-subtle)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <div>
+                            <span style={{ fontSize: '0.725rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--blue-700)' }}>
+                                Day Sessions Processed
+                            </span>
+                            <h2 style={{ fontSize: '2rem', fontWeight: 900, color: 'var(--text-primary)', margin: '0.35rem 0 0' }}>
+                                {totalSessions}
+                            </h2>
+                        </div>
+                        <div style={{ padding: '0.65rem', borderRadius: 'var(--radius-md)', backgroundColor: 'var(--blue-600)', color: '#ffffff' }}>
+                            <Calendar size={20} />
+                        </div>
+                    </div>
+                    <div style={{ marginTop: '1rem', paddingTop: '0.75rem', borderTop: '1px solid var(--border-main)', fontSize: '0.75rem', color: 'var(--blue-700)', fontWeight: 600 }}>
+                        Total days recorded across tenants
+                    </div>
                 </div>
             </div>
 
-            {/* Businesses Management Table */}
-            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden space-y-4">
-                <div className="p-6 pb-0 flex justify-between items-center">
-                    <h2 className="text-lg font-bold text-slate-900">Tenant Directory</h2>
+            {/* Filter Bar & Search */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '1rem' }}>
+                <div className="tabs-container">
+                    <button 
+                        onClick={() => setTabFilter('all')}
+                        className={`tab-btn ${tabFilter === 'all' ? 'active' : ''}`}
+                    >
+                        All Tenants ({businesses.length})
+                    </button>
+                    <button 
+                        onClick={() => setTabFilter('active')}
+                        className={`tab-btn ${tabFilter === 'active' ? 'active' : ''}`}
+                    >
+                        Active ({activeCount})
+                    </button>
+                    <button 
+                        onClick={() => setTabFilter('archived')}
+                        className={`tab-btn ${tabFilter === 'archived' ? 'active' : ''}`}
+                    >
+                        Archived ({archivedCount})
+                    </button>
+                </div>
+
+                <div style={{ position: 'relative', width: '300px', maxWidth: '100%' }}>
+                    <Search size={16} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--blue-400)' }} />
                     <input 
-                        type="text" 
-                        placeholder="Search tenants..." 
+                        type="text"
+                        placeholder="Search business or username..."
                         value={search}
-                        onChange={e => setSearch(e.target.value)}
-                        className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-900"
+                        onChange={(e) => setSearch(e.target.value)}
+                        className="input-control"
+                        style={{ paddingLeft: '2.5rem', borderRadius: 'var(--radius-full)' }}
                     />
                 </div>
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
+            </div>
+
+            {/* Tenants Table */}
+            <div className="blue-card" style={{ padding: '0.5rem', overflow: 'hidden' }}>
+                <div className="table-container" style={{ border: 'none', boxShadow: 'none' }}>
+                    <table className="custom-table">
                         <thead>
-                            <tr className="bg-slate-50 text-slate-400 text-xs font-semibold uppercase tracking-wider border-b border-slate-100">
-                                <th className="p-4">Business Name</th>
-                                <th className="p-4">Admin Username</th>
-                                <th className="p-4">Status</th>
-                                <th className="p-4">Total Sessions</th>
-                                <th className="p-4">Created At</th>
-                                <th className="p-4 text-right">Actions</th>
+                            <tr>
+                                <th>Business Storefront</th>
+                                <th>Admin User</th>
+                                <th>Total Sessions</th>
+                                <th>Created On</th>
+                                <th>Status</th>
+                                <th style={{ textAlign: 'right' }}>Actions</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-slate-100 text-sm text-slate-700">
-                            {filteredBusinesses.length === 0 ? (
-                                <tr><td colSpan="6" className="p-6 text-center text-slate-400">No matching business tenants found.</td></tr>
+                        <tbody>
+                            {loading ? (
+                                <tr>
+                                    <td colSpan="6" style={{ padding: '3.5rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+                                        Loading registered businesses...
+                                    </td>
+                                </tr>
+                            ) : filteredBusinesses.length === 0 ? (
+                                <tr>
+                                    <td colSpan="6" style={{ padding: '4rem 2rem', textAlign: 'center' }}>
+                                        <Building2 size={40} style={{ margin: '0 auto 0.75rem', opacity: 0.5, color: 'var(--blue-400)' }} />
+                                        <p style={{ fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>No matching tenants</p>
+                                        <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: '0.25rem 0 0' }}>
+                                            Try adjusting your filter or search query.
+                                        </p>
+                                    </td>
+                                </tr>
                             ) : (
-                                filteredBusinesses.map((b) => (
-                                    <tr key={b.id} className="hover:bg-slate-50/50 transition-colors">
-                                        <td className="p-4 font-medium text-slate-900 flex items-center gap-2">
-                                            <Building size={16} className="text-slate-400" /> {b.name}
-                                        </td>
-                                        <td className="p-4">{b.username || 'N/A'}</td>
-                                        <td className="p-4">
-                                            <span className={`px-2.5 py-1 rounded-full text-xs font-semibold uppercase tracking-wider ${
-                                                b.is_active ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'
-                                            }`}>
-                                                {b.is_active ? 'Active' : 'Suspended'}
-                                            </span>
-                                        </td>
-                                        <td className="p-4">{b.total_sessions}</td>
-                                        <td className="p-4 text-slate-500">{new Date(b.created_at).toLocaleDateString()}</td>
-                                        <td className="p-4 text-right space-x-2">
-                                            <button 
-                                                onClick={() => handleToggleStatus(b.id, b.is_active)} 
-                                                className={`px-3 py-1 rounded-lg text-xs font-medium ${b.is_active ? 'bg-amber-50 text-amber-700 hover:bg-amber-100' : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'}`}
-                                            >
-                                                {b.is_active ? 'Suspend' : 'Activate'}
-                                            </button>
-                                            <button 
-                                                onClick={() => handleArchive(b.id)} 
-                                                className="px-3 py-1 rounded-lg text-xs font-medium bg-rose-50 text-rose-700 hover:bg-rose-100"
-                                            >
-                                                Archive
-                                            </button>
-                                        </td>
-                                    </tr>
-                                ))
+                                filteredBusinesses.map((biz) => {
+                                    const isArchived = biz.is_archived;
+                                    return (
+                                        <tr key={biz.id}>
+                                            <td>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                                    <div style={{
+                                                        width: '38px',
+                                                        height: '38px',
+                                                        borderRadius: 'var(--radius-md)',
+                                                        backgroundColor: 'var(--bg-subtle)',
+                                                        border: '1px solid var(--border-subtle)',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        color: 'var(--blue-600)',
+                                                        fontWeight: 800
+                                                    }}>
+                                                        {biz.name?.charAt(0)?.toUpperCase() || 'B'}
+                                                    </div>
+                                                    <div>
+                                                        <span style={{ fontWeight: 700, color: 'var(--text-primary)', display: 'block' }}>
+                                                            {biz.name}
+                                                        </span>
+                                                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                                                            Tenant ID: #{biz.id}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td style={{ fontWeight: 600, color: 'var(--blue-600)' }}>
+                                                {biz.username || 'No user assigned'}
+                                            </td>
+                                            <td>
+                                                <span className="badge-outline">
+                                                    {biz.total_sessions || 0} Sessions
+                                                </span>
+                                            </td>
+                                            <td style={{ color: 'var(--text-muted)', fontSize: '0.825rem' }}>
+                                                {formatDate(biz.created_at)}
+                                            </td>
+                                            <td>
+                                                <span className={isArchived ? "badge-outline" : "badge-blue"}>
+                                                    {isArchived ? 'Archived' : 'Active'}
+                                                </span>
+                                            </td>
+                                            <td style={{ textAlign: 'right' }}>
+                                                <div style={{ display: 'inline-flex', gap: '0.5rem' }}>
+                                                    <button 
+                                                        onClick={() => handleViewReports(biz.id)}
+                                                        className="btn-secondary"
+                                                        style={{ padding: '0.4rem 0.8rem', fontSize: '0.775rem' }}
+                                                        title="Inspect session history"
+                                                    >
+                                                        <FileText size={14} /> Sessions
+                                                    </button>
+                                                    {!isArchived && (
+                                                        <button 
+                                                            onClick={() => handleArchive(biz.id, biz.name)}
+                                                            className="btn-icon"
+                                                            style={{ padding: '0.4rem' }}
+                                                            title="Archive Tenant"
+                                                        >
+                                                            <Archive size={15} style={{ color: 'var(--blue-700)' }} />
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    );
+                                })
                             )}
                         </tbody>
                     </table>
                 </div>
             </div>
 
-            {/* Register Business Modal */}
-            {modal && (
-                <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-                    <form onSubmit={handleCreateBusiness} className="bg-white rounded-2xl p-6 max-w-md w-full space-y-4">
-                        <h3 className="text-lg font-bold text-slate-900">Register New Business Tenant</h3>
-                        <input type="text" placeholder="Business Name" value={name} onChange={e => setName(e.target.value)} required className="w-full p-2.5 border rounded-lg text-sm" />
-                        <input type="text" placeholder="Admin Username" value={username} onChange={e => setUsername(e.target.value)} required className="w-full p-2.5 border rounded-lg text-sm" />
-                        <input type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} required className="w-full p-2.5 border rounded-lg text-sm" />
-                        <div className="flex justify-end gap-2 pt-2">
-                            <button type="button" onClick={() => setModal(false)} className="px-4 py-2 border rounded-lg text-sm">Cancel</button>
-                            <button type="submit" className="px-4 py-2 bg-slate-900 text-white rounded-lg text-sm font-medium">Create Business</button>
+            {/* MODAL: Register New Business */}
+            <Modal 
+                isOpen={registerModal} 
+                onClose={() => setRegisterModal(false)} 
+                title="Register New Retail Business"
+                footer={
+                    <>
+                        <button type="button" onClick={() => setRegisterModal(false)} className="btn-outline">
+                            Cancel
+                        </button>
+                        <button type="submit" form="register-form" disabled={registerLoading} className="btn-primary">
+                            Create Business Account
+                        </button>
+                    </>
+                }
+            >
+                <form id="register-form" onSubmit={handleRegisterBusiness} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                    <div className="input-group">
+                        <label className="input-label">Business Organization Name</label>
+                        <input 
+                            type="text"
+                            required
+                            placeholder="e.g. Skyline Supermarket"
+                            value={newBizName}
+                            onChange={(e) => setNewBizName(e.target.value)}
+                            className="input-control"
+                        />
+                    </div>
+
+                    <div className="input-group">
+                        <label className="input-label">Business Admin Username</label>
+                        <input 
+                            type="text"
+                            required
+                            placeholder="e.g. skyline_admin"
+                            value={newUsername}
+                            onChange={(e) => setNewUsername(e.target.value)}
+                            className="input-control"
+                        />
+                    </div>
+
+                    <div className="input-group">
+                        <label className="input-label">Initial Access Password</label>
+                        <input 
+                            type="password"
+                            required
+                            placeholder="••••••••"
+                            value={newPassword}
+                            onChange={(e) => setNewPassword(e.target.value)}
+                            className="input-control"
+                        />
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                            The business user can modify this password later from their settings.
+                        </span>
+                    </div>
+                </form>
+            </Modal>
+
+            {/* MODAL: Tenant Session History & Reports */}
+            <Modal isOpen={reportsModal} onClose={() => setReportsModal(false)} title="Tenant Session Log & Reports" maxWidth="680px">
+                {reportsLoading ? (
+                    <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+                        Fetching session history...
+                    </div>
+                ) : selectedTenantReport ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                        <div style={{ padding: '1rem', backgroundColor: 'var(--bg-subtle)', borderRadius: 'var(--radius-md)' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                                <span className="badge-blue">Tenant Information</span>
+                            </div>
+                            <h3 style={{ fontSize: '1.2rem', fontWeight: 800, margin: 0 }}>
+                                {selectedTenantReport.business?.name}
+                            </h3>
+                            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: '0.2rem 0 0' }}>
+                                Account created: {formatDate(selectedTenantReport.business?.created_at)}
+                            </p>
                         </div>
-                    </form>
-                </div>
-            )}
+
+                        <div>
+                            <h4 style={{ fontSize: '0.9rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '0.75rem' }}>
+                                Historical Day Sessions ({selectedTenantReport.sessions?.length || 0})
+                            </h4>
+
+                            {selectedTenantReport.sessions?.length === 0 ? (
+                                <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>No daily sessions have been started by this business yet.</p>
+                            ) : (
+                                <div className="table-container" style={{ maxHeight: '350px', overflowY: 'auto' }}>
+                                    <table className="custom-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Date</th>
+                                                <th>Status</th>
+                                                <th>Opened At</th>
+                                                <th>Closed At</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {selectedTenantReport.sessions?.map((sess) => (
+                                                <tr key={sess.id}>
+                                                    <td style={{ fontWeight: 700 }}>{sess.session_date}</td>
+                                                    <td>
+                                                        <span className={sess.status === 'open' ? "badge-blue" : "badge-outline"}>
+                                                            {sess.status}
+                                                        </span>
+                                                    </td>
+                                                    <td style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                                                        {sess.opened_at ? new Date(sess.opened_at).toLocaleTimeString() : '—'}
+                                                    </td>
+                                                    <td style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                                                        {sess.closed_at ? new Date(sess.closed_at).toLocaleTimeString() : 'Active'}
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
+                        </div>
+
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
+                            <button onClick={() => setReportsModal(false)} className="btn-secondary">
+                                Done
+                            </button>
+                        </div>
+                    </div>
+                ) : null}
+            </Modal>
         </div>
     );
 };

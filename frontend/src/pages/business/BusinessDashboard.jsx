@@ -1,236 +1,822 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext, useCallback } from 'react';
 import API from '../../services/api';
 import { AuthContext } from '../../context/AuthContext';
-import { Play, Square, PlusCircle, Sun, Moon, Clock, AlertTriangle } from 'lucide-react';
+import { Modal } from '../../components/common/Modal';
+import { formatCurrency, formatDate } from '../../utils/formatters';
+import { 
+    Play, 
+    Square, 
+    PlusCircle, 
+    DollarSign, 
+    TrendingUp, 
+    ArrowUpRight, 
+    ArrowDownRight, 
+    Clock, 
+    Calendar, 
+    AlertCircle, 
+    CheckCircle2, 
+    Lock, 
+    Receipt, 
+    Building2,
+    Layers,
+    FileSpreadsheet
+} from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 export const BusinessDashboard = () => {
-    const { user } = useContext(AuthContext);
+    const { user, businessName, businessLogo } = useContext(AuthContext);
+    const navigate = useNavigate();
+
     const [dashboard, setDashboard] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [actionLoading, setActionLoading] = useState(false);
     const [error, setError] = useState('');
-    
-    // Theme & Time States
-    const [darkMode, setDarkMode] = useState(false);
-    const [currentTime, setCurrentTime] = useState(new Date());
+    const [successMessage, setSuccessMessage] = useState('');
 
-    // Modal & Form States
+    // Modals
     const [incomeModal, setIncomeModal] = useState(false);
     const [expenseModal, setExpenseModal] = useState(false);
-    const [amount, setAmount] = useState('');
-    const [source, setSource] = useState('');
-    const [category, setCategory] = useState('');
-    const [expenseType, setExpenseType] = useState('direct');
-    const [description, setDescription] = useState('');
+    const [daySummaryModal, setDaySummaryModal] = useState(false);
+    const [daySummaryData, setDaySummaryData] = useState(null);
 
-    // Live Clock Timer
+    // Form inputs
+    const [incomeAmount, setIncomeAmount] = useState('');
+    const [incomeSource, setIncomeSource] = useState('');
+    const [incomeDesc, setIncomeDesc] = useState('');
+
+    const [expenseAmount, setExpenseAmount] = useState('');
+    const [expenseCategory, setExpenseCategory] = useState('');
+    const [expenseType, setExpenseType] = useState('direct');
+    const [expenseDesc, setExpenseDesc] = useState('');
+
+    // Recent transactions preview
+    const [recentTransactions, setRecentTransactions] = useState([]);
+
+    // Live clock
+    const [currentTime, setCurrentTime] = useState(new Date());
+
     useEffect(() => {
         const timer = setInterval(() => setCurrentTime(new Date()), 1000);
         return () => clearInterval(timer);
     }, []);
 
-    const fetchDashboard = async () => {
+    const fetchDashboard = useCallback(async () => {
         try {
-            const res = await API.get('/business/dashboard');
-            setDashboard(res.data);
+            const [dashRes, txRes] = await Promise.all([
+                API.get('/business/dashboard'),
+                API.get('/business/transactions').catch(() => ({ data: { transactions: [] } }))
+            ]);
+            setDashboard(dashRes.data);
+            setRecentTransactions((txRes.data.transactions || []).slice(0, 5));
+            setError('');
         } catch (err) {
-            setError(err.response?.data?.error || 'Failed to load dashboard metrics.');
+            setError(err.response?.data?.error || 'Failed to load business metrics from server.');
         } finally {
             setLoading(false);
         }
-    };
+    }, []);
 
     useEffect(() => {
         fetchDashboard();
-    }, []);
+    }, [fetchDashboard]);
 
+    // Session controls
     const handleOpenDay = async () => {
+        setActionLoading(true);
+        setError('');
         try {
             await API.post('/business/session/open');
-            fetchDashboard();
+            setSuccessMessage("Business session opened successfully. You can now record transactions!");
+            setTimeout(() => setSuccessMessage(''), 4000);
+            await fetchDashboard();
         } catch (err) {
-            alert(err.response?.data?.error || 'Failed to open day.');
+            setError(err.response?.data?.error || "Failed to open today's business session.");
+        } finally {
+            setActionLoading(false);
         }
     };
 
     const handleCloseDay = async () => {
-        if (!window.confirm("Are you sure you want to close today's session? Transactions will be locked.")) return;
+        if (!window.confirm("Are you sure you want to close today's session? All transactions will be locked.")) {
+            return;
+        }
+        setActionLoading(true);
+        setError('');
         try {
             const res = await API.post('/business/session/close');
-            alert(`Day closed successfully! Gross Profit: ${res.data.summary.grossProfit}, Net Profit: ${res.data.summary.netProfit}`);
-            fetchDashboard();
+            setDaySummaryData(res.data.summary);
+            setDaySummaryModal(true);
+            await fetchDashboard();
         } catch (err) {
-            alert(err.response?.data?.error || 'Failed to close day.');
+            setError(err.response?.data?.error || "Failed to close business day session.");
+        } finally {
+            setActionLoading(false);
         }
     };
 
+    // Add Income
     const handleAddIncome = async (e) => {
         e.preventDefault();
+        setActionLoading(true);
         try {
-            await API.post('/business/incomes', { amount, source, description });
-            setAmount(''); setSource(''); setDescription('');
+            await API.post('/business/incomes', {
+                amount: parseFloat(incomeAmount),
+                source: incomeSource,
+                description: incomeDesc
+            });
+            setIncomeAmount('');
+            setIncomeSource('');
+            setIncomeDesc('');
             setIncomeModal(false);
-            fetchDashboard();
+            setSuccessMessage("Income entry recorded successfully.");
+            setTimeout(() => setSuccessMessage(''), 3000);
+            await fetchDashboard();
         } catch (err) {
-            alert(err.response?.data?.error || 'Failed to add income.');
+            alert(err.response?.data?.error || 'Failed to record income.');
+        } finally {
+            setActionLoading(false);
         }
     };
 
+    // Add Expense
     const handleAddExpense = async (e) => {
         e.preventDefault();
+        setActionLoading(true);
         try {
-            await API.post('/business/expenses', { amount, category, expense_type: expenseType, description });
-            setAmount(''); setCategory(''); setDescription('');
+            await API.post('/business/expenses', {
+                amount: parseFloat(expenseAmount),
+                category: expenseCategory,
+                expense_type: expenseType,
+                description: expenseDesc
+            });
+            setExpenseAmount('');
+            setExpenseCategory('');
+            setExpenseDesc('');
+            setExpenseType('direct');
             setExpenseModal(false);
-            fetchDashboard();
+            setSuccessMessage("Expense entry recorded successfully.");
+            setTimeout(() => setSuccessMessage(''), 3000);
+            await fetchDashboard();
         } catch (err) {
-            alert(err.response?.data?.error || 'Failed to add expense.');
+            alert(err.response?.data?.error || 'Failed to record expense.');
+        } finally {
+            setActionLoading(false);
         }
     };
 
-    if (loading) return <div className="p-8 text-center text-slate-500">Loading dashboard...</div>;
-
+    const sessionStatus = dashboard?.sessionStatus || 'not_opened';
+    const isSessionOpen = sessionStatus === 'open';
+    const isSessionClosed = sessionStatus === 'closed';
     const metrics = dashboard?.todayMetrics || {};
-    const isSessionOpen = dashboard?.sessionStatus === 'open';
+
+    const formattedLiveDate = currentTime.toLocaleDateString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    });
+    const formattedLiveTime = currentTime.toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: true
+    });
+
+    if (loading) {
+        return (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', gap: '1rem' }}>
+                <div style={{ width: '48px', height: '48px', border: '3px solid var(--blue-200)', borderTopColor: 'var(--blue-600)', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
+                <p style={{ color: 'var(--text-muted)', fontWeight: 600 }}>Loading business financial data...</p>
+                <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
+            </div>
+        );
+    }
 
     return (
-        <div className={`min-h-screen p-8 transition-colors duration-200 ${darkMode ? 'bg-slate-950 text-slate-100' : 'bg-slate-50 text-slate-900'}`}>
-            <div className="max-w-7xl mx-auto space-y-6">
-                
-                {/* Top Bar: Welcome, Live Clock & Theme Toggle */}
-                <div className={`flex flex-col md:flex-row justify-between items-start md:items-center gap-4 p-6 rounded-2xl border shadow-sm transition-colors ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'}`}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+            {/* 1. Header Banner with Business Name & Real-time Live Clock */}
+            <section className="blue-card-gradient" style={{ padding: '2rem 2.5rem' }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '1.5rem', position: 'relative', zIndex: 2 }}>
                     <div>
-                        <h1 className="text-2xl font-bold">Welcome back, {user?.username || 'Business'}</h1>
-                        <div className="flex items-center gap-2 text-sm text-slate-400 mt-1">
-                            <Clock size={16} />
-                            <span>{currentTime.toLocaleDateString()} — {currentTime.toLocaleTimeString()}</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.5rem' }}>
+                            <span className="badge-white">
+                                <Building2 size={13} /> {businessName}
+                            </span>
+                            <span className="badge-white">
+                                Retail Operations
+                            </span>
                         </div>
+                        <h1 style={{ fontSize: '2rem', fontWeight: 800, color: '#ffffff', margin: 0 }}>
+                            {businessName}
+                        </h1>
+                        <p style={{ color: 'rgba(255, 255, 255, 0.85)', fontSize: '0.95rem', margin: '0.4rem 0 0', fontWeight: 500 }}>
+                            Track daily gross vs. net profits, sales revenue, and expenses in real-time.
+                        </p>
                     </div>
-                    <div className="flex items-center gap-3">
-                        <button 
-                            onClick={() => setDarkMode(!darkMode)}
-                            className={`p-2 rounded-xl border transition-colors ${darkMode ? 'bg-slate-800 border-slate-700 text-amber-400' : 'bg-slate-50 border-slate-200 text-slate-700'}`}
-                            title="Toggle Theme"
-                        >
-                            {darkMode ? <Sun size={20} /> : <Moon size={20} />}
-                        </button>
+
+                    {/* Live Clock Card */}
+                    <div style={{
+                        backgroundColor: 'rgba(255, 255, 255, 0.15)',
+                        backdropFilter: 'blur(10px)',
+                        border: '1px solid rgba(255, 255, 255, 0.3)',
+                        borderRadius: 'var(--radius-lg)',
+                        padding: '1.25rem 1.75rem',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'flex-end',
+                        gap: '0.35rem'
+                    }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#ffffff', fontSize: '0.85rem', fontWeight: 600 }}>
+                            <Calendar size={16} />
+                            <span>{formattedLiveDate}</span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#ffffff', fontSize: '1.75rem', fontWeight: 800, letterSpacing: '0.04em', fontVariantNumeric: 'tabular-nums' }}>
+                            <Clock size={20} />
+                            <span>{formattedLiveTime}</span>
+                        </div>
                     </div>
                 </div>
+            </section>
 
-                {/* Session Warning Banner if Not Opened */}
-                {dashboard?.sessionStatus === 'not_opened' && (
-                    <div className={`p-4 rounded-xl border flex flex-col md:flex-row justify-between items-start md:items-center gap-4 transition-colors ${darkMode ? 'bg-amber-500/10 border-amber-500/20 text-amber-300' : 'bg-amber-50 border-amber-200 text-amber-800'}`}>
-                        <div className="flex items-center gap-3">
-                            <AlertTriangle size={20} className="shrink-0" />
-                            <div>
-                                <h3 className="font-bold">Business Day Not Open</h3>
-                                <p className="text-sm opacity-90">You must open today's business session before recording any incomes or expenses.</p>
-                            </div>
+            {/* Notifications / Alerts */}
+            {error && (
+                <div className="animate-fade-in" style={{
+                    backgroundColor: 'var(--bg-surface)',
+                    border: '1px solid var(--border-main)',
+                    borderLeft: '4px solid var(--blue-600)',
+                    padding: '1rem 1.5rem',
+                    borderRadius: 'var(--radius-md)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.75rem',
+                    color: 'var(--text-primary)'
+                }}>
+                    <AlertCircle size={20} style={{ color: 'var(--blue-600)', flexShrink: 0 }} />
+                    <span style={{ fontSize: '0.9rem', fontWeight: 500 }}>{error}</span>
+                </div>
+            )}
+
+            {successMessage && (
+                <div className="animate-fade-in" style={{
+                    backgroundColor: 'var(--bg-surface)',
+                    border: '1px solid var(--blue-300)',
+                    borderLeft: '4px solid var(--blue-500)',
+                    padding: '1rem 1.5rem',
+                    borderRadius: 'var(--radius-md)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.75rem',
+                    color: 'var(--text-primary)'
+                }}>
+                    <CheckCircle2 size={20} style={{ color: 'var(--blue-500)', flexShrink: 0 }} />
+                    <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>{successMessage}</span>
+                </div>
+            )}
+
+            {/* 2. Interactive Daily Session Control Bar */}
+            <section className="blue-card" style={{ padding: '1.5rem 2rem' }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '1.25rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                        <div style={{
+                            width: '46px',
+                            height: '46px',
+                            borderRadius: 'var(--radius-md)',
+                            backgroundColor: 'var(--bg-subtle)',
+                            border: '1px solid var(--border-subtle)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: 'var(--blue-600)'
+                        }}>
+                            {isSessionOpen ? <Play size={22} /> : isSessionClosed ? <Lock size={22} /> : <AlertCircle size={22} />}
                         </div>
-                        <button onClick={handleOpenDay} className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap">
-                            Open Business Day Now
-                        </button>
+                        <div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                                <h3 style={{ fontSize: '1.1rem', fontWeight: 700, margin: 0 }}>
+                                    Daily Business Session
+                                </h3>
+                                <span className="badge-blue" style={{
+                                    backgroundColor: isSessionOpen ? 'var(--blue-100)' : 'var(--bg-subtle)',
+                                    color: 'var(--blue-800)',
+                                    borderColor: 'var(--blue-300)'
+                                }}>
+                                    {isSessionOpen ? 'Session Active / Open' : isSessionClosed ? 'Session Closed & Locked' : 'Session Not Opened'}
+                                </span>
+                            </div>
+                            <p style={{ fontSize: '0.825rem', color: 'var(--text-muted)', margin: '0.2rem 0 0' }}>
+                                {isSessionOpen 
+                                    ? 'Incomes and expenses are currently being accepted for today.' 
+                                    : isSessionClosed 
+                                    ? "Today's books are finalized. New entries are disabled until tomorrow."
+                                    : 'You must open the day session before adding sales or expense records.'}
+                            </p>
+                        </div>
                     </div>
-                )}
 
-                {/* Header & Controls */}
-                <div className={`flex flex-col md:flex-row justify-between items-start md:items-center gap-4 p-6 rounded-2xl border shadow-sm transition-colors ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'}`}>
-                    <div>
-                        <h2 className="text-xl font-bold">Daily Financial Operations</h2>
-                        <p className="text-sm text-slate-400">Real-time tracking and session controls</p>
-                    </div>
-                    <div className="flex items-center gap-3 flex-wrap">
-                        <span className={`px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider ${
-                            isSessionOpen ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' : 'bg-amber-500/10 text-amber-500 border border-amber-500/20'
-                        }`}>
-                            Status: {dashboard?.sessionStatus}
-                        </span>
-                        {!isSessionOpen && dashboard?.sessionStatus !== 'closed' && (
-                            <button onClick={handleOpenDay} className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
-                                <Play size={16} /> Open Business Day
+                    {/* Action Controls */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+                        {!isSessionOpen && !isSessionClosed && (
+                            <button 
+                                onClick={handleOpenDay}
+                                disabled={actionLoading}
+                                className="btn-primary"
+                                style={{ padding: '0.75rem 1.5rem', fontSize: '0.9rem' }}
+                            >
+                                <Play size={18} /> Open Business Day
                             </button>
                         )}
+
                         {isSessionOpen && (
                             <>
-                                <button onClick={() => setIncomeModal(true)} className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2 rounded-lg text-sm font-medium">
-                                    <PlusCircle size={16} /> Add Income
+                                <button 
+                                    onClick={() => setIncomeModal(true)}
+                                    className="btn-primary"
+                                    style={{ background: 'var(--blue-gradient)' }}
+                                >
+                                    <PlusCircle size={17} /> Record Income
                                 </button>
-                                <button onClick={() => setExpenseModal(true)} className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2 rounded-lg text-sm font-medium">
-                                    <PlusCircle size={16} /> Add Expense
+                                <button 
+                                    onClick={() => setExpenseModal(true)}
+                                    className="btn-secondary"
+                                >
+                                    <PlusCircle size={17} /> Record Expense
                                 </button>
-                                <button onClick={handleCloseDay} className="flex items-center gap-1.5 bg-rose-600 hover:bg-rose-700 text-white px-3 py-2 rounded-lg text-sm font-medium">
-                                    <Square size={16} /> Close Day
+                                <button 
+                                    onClick={handleCloseDay}
+                                    disabled={actionLoading}
+                                    className="btn-outline"
+                                    style={{ color: 'var(--blue-700)', borderColor: 'var(--blue-400)' }}
+                                >
+                                    <Square size={17} /> Finalize & Close Day
                                 </button>
                             </>
                         )}
                     </div>
                 </div>
+            </section>
 
-                {error && <div className="p-4 bg-rose-500/10 border border-rose-500/20 text-rose-500 rounded-lg text-sm">{error}</div>}
-
-                {/* Metrics Cards Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
-                    <div className={`p-5 rounded-xl border shadow-sm transition-colors ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'}`}>
-                        <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Today's Incomes</p>
-                        <p className="text-2xl font-bold mt-2">${metrics.totalIncome?.toFixed(2) || '0.00'}</p>
+            {/* 3. Core Financial Metrics Grid (Strict Blue & White Palette) */}
+            <section className="metrics-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: '1.25rem' }}>
+                {/* 1. Today's Incomes */}
+                <div className="blue-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <div>
+                            <span style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-muted)' }}>
+                                Today's Income
+                            </span>
+                            <h2 style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-primary)', margin: '0.4rem 0 0' }}>
+                                {formatCurrency(metrics.totalIncome || 0)}
+                            </h2>
+                        </div>
+                        <div style={{
+                            padding: '0.65rem',
+                            borderRadius: 'var(--radius-md)',
+                            backgroundColor: 'var(--blue-100)',
+                            color: 'var(--blue-700)',
+                            border: '1px solid var(--blue-200)'
+                        }}>
+                            <ArrowUpRight size={20} />
+                        </div>
                     </div>
-                    <div className={`p-5 rounded-xl border shadow-sm transition-colors ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'}`}>
-                        <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Direct Expenses</p>
-                        <p className="text-2xl font-bold text-rose-500 mt-2">${metrics.totalDirectExp?.toFixed(2) || '0.00'}</p>
-                    </div>
-                    <div className={`p-5 rounded-xl border shadow-sm transition-colors ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'}`}>
-                        <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Operating Expenses</p>
-                        <p className="text-2xl font-bold text-rose-500 mt-2">${metrics.totalOperatingExp?.toFixed(2) || '0.00'}</p>
-                    </div>
-                    <div className={`p-5 rounded-xl border shadow-sm transition-colors ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'}`}>
-                        <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Gross Profit / Loss</p>
-                        <p className={`text-2xl font-bold mt-2 ${metrics.grossProfit >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
-                            ${metrics.grossProfit?.toFixed(2) || '0.00'}
-                        </p>
-                    </div>
-                    <div className={`p-5 rounded-xl border shadow-sm transition-colors ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'}`}>
-                        <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Net Profit / Loss</p>
-                        <p className={`text-2xl font-bold mt-2 ${metrics.netProfit >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
-                            ${metrics.netProfit?.toFixed(2) || '0.00'}
-                        </p>
+                    <div style={{ marginTop: '1.25rem', paddingTop: '0.75rem', borderTop: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Revenue Inflows</span>
+                        <span className="badge-blue" style={{ fontSize: '0.65rem' }}>Active Session</span>
                     </div>
                 </div>
 
-                {/* Modals for Income & Expense */}
-                {incomeModal && (
-                    <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-                        <form onSubmit={handleAddIncome} className={`rounded-2xl p-6 max-w-md w-full space-y-4 border ${darkMode ? 'bg-slate-900 border-slate-800 text-slate-100' : 'bg-white border-slate-100 text-slate-900'}`}>
-                            <h3 className="text-lg font-bold">Record Income</h3>
-                            <input type="number" step="0.01" placeholder="Amount" value={amount} onChange={e => setAmount(e.target.value)} required className={`w-full p-2.5 border rounded-lg ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-slate-50 border-slate-200'}`} />
-                            <input type="text" placeholder="Source (e.g., Sales)" value={source} onChange={e => setSource(e.target.value)} required className={`w-full p-2.5 border rounded-lg ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-slate-50 border-slate-200'}`} />
-                            <input type="text" placeholder="Description (Optional)" value={description} onChange={e => setDescription(e.target.value)} className={`w-full p-2.5 border rounded-lg ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-slate-50 border-slate-200'}`} />
-                            <div className="flex justify-end gap-2 pt-2">
-                                <button type="button" onClick={() => setIncomeModal(false)} className="px-4 py-2 border rounded-lg text-sm">Cancel</button>
-                                <button type="submit" className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium">Save Income</button>
-                            </div>
-                        </form>
+                {/* 2. Direct Expenses (COGS) */}
+                <div className="blue-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <div>
+                            <span style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-muted)' }}>
+                                Direct Expenses (COGS)
+                            </span>
+                            <h2 style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--blue-800)', margin: '0.4rem 0 0' }}>
+                                {formatCurrency(metrics.totalDirectExp || 0)}
+                            </h2>
+                        </div>
+                        <div style={{
+                            padding: '0.65rem',
+                            borderRadius: 'var(--radius-md)',
+                            backgroundColor: 'var(--bg-subtle)',
+                            color: 'var(--blue-600)',
+                            border: '1px solid var(--border-main)'
+                        }}>
+                            <ArrowDownRight size={20} />
+                        </div>
+                    </div>
+                    <div style={{ marginTop: '1.25rem', paddingTop: '0.75rem', borderTop: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Inventory & Goods</span>
+                        <span className="badge-outline" style={{ fontSize: '0.65rem' }}>Direct Cost</span>
+                    </div>
+                </div>
+
+                {/* 3. Operating Expenses */}
+                <div className="blue-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <div>
+                            <span style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-muted)' }}>
+                                Operating Expenses
+                            </span>
+                            <h2 style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-secondary)', margin: '0.4rem 0 0' }}>
+                                {formatCurrency(metrics.totalOperatingExp || 0)}
+                            </h2>
+                        </div>
+                        <div style={{
+                            padding: '0.65rem',
+                            borderRadius: 'var(--radius-md)',
+                            backgroundColor: 'var(--bg-subtle)',
+                            color: 'var(--text-muted)',
+                            border: '1px solid var(--border-main)'
+                        }}>
+                            <Layers size={20} />
+                        </div>
+                    </div>
+                    <div style={{ marginTop: '1.25rem', paddingTop: '0.75rem', borderTop: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Rent, Utilities, Staff</span>
+                        <span className="badge-outline" style={{ fontSize: '0.65rem' }}>Overhead</span>
+                    </div>
+                </div>
+
+                {/* 4. Gross Profit / Loss */}
+                <div className="blue-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <div>
+                            <span style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-muted)' }}>
+                                Gross Profit
+                            </span>
+                            <h2 style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--blue-600)', margin: '0.4rem 0 0' }}>
+                                {formatCurrency(metrics.grossProfit || 0)}
+                            </h2>
+                        </div>
+                        <div style={{
+                            padding: '0.65rem',
+                            borderRadius: 'var(--radius-md)',
+                            backgroundColor: 'var(--blue-100)',
+                            color: 'var(--blue-700)',
+                            border: '1px solid var(--blue-300)'
+                        }}>
+                            <TrendingUp size={20} />
+                        </div>
+                    </div>
+                    <div style={{ marginTop: '1.25rem', paddingTop: '0.75rem', borderTop: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Revenue - Direct Exp</span>
+                        <span className="badge-blue" style={{ fontSize: '0.65rem' }}>Formula</span>
+                    </div>
+                </div>
+
+                {/* 5. Net Profit / Loss */}
+                <div className="blue-card" style={{ 
+                    padding: '1.5rem', 
+                    display: 'flex', 
+                    flexDirection: 'column', 
+                    justifyContent: 'space-between',
+                    border: '2px solid var(--blue-500)',
+                    background: 'var(--blue-gradient-subtle)'
+                }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <div>
+                            <span style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--blue-700)' }}>
+                                Today's Net Profit
+                            </span>
+                            <h2 style={{ fontSize: '1.9rem', fontWeight: 900, color: 'var(--text-primary)', margin: '0.4rem 0 0' }}>
+                                {formatCurrency(metrics.netProfit || 0)}
+                            </h2>
+                        </div>
+                        <div style={{
+                            padding: '0.65rem',
+                            borderRadius: 'var(--radius-md)',
+                            backgroundColor: 'var(--blue-600)',
+                            color: '#ffffff',
+                            boxShadow: '0 4px 12px rgba(37, 99, 235, 0.4)'
+                        }}>
+                            <DollarSign size={20} />
+                        </div>
+                    </div>
+                    <div style={{ marginTop: '1.25rem', paddingTop: '0.75rem', borderTop: '1px solid var(--border-main)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--blue-700)' }}>Gross - Operating</span>
+                        <span className="badge-blue" style={{ fontSize: '0.65rem' }}>Final Bottom Line</span>
+                    </div>
+                </div>
+            </section>
+
+            {/* 4. Recent Transactions Preview Section */}
+            <section className="blue-card" style={{ padding: '1.75rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                        <Receipt size={20} style={{ color: 'var(--blue-500)' }} />
+                        <h3 style={{ fontSize: '1.15rem', fontWeight: 700, margin: 0 }}>
+                            Recent Transactions Preview
+                        </h3>
+                    </div>
+                    <button 
+                        onClick={() => navigate('/business/transactions')}
+                        className="btn-secondary"
+                        style={{ padding: '0.45rem 0.9rem', fontSize: '0.8rem' }}
+                    >
+                        View Full History &rarr;
+                    </button>
+                </div>
+
+                {recentTransactions.length === 0 ? (
+                    <div style={{ padding: '2.5rem', textAlign: 'center', color: 'var(--text-muted)', backgroundColor: 'var(--bg-base)', borderRadius: 'var(--radius-md)', border: '1px dashed var(--border-main)' }}>
+                        <FileSpreadsheet size={36} style={{ margin: '0 auto 0.75rem', opacity: 0.6, color: 'var(--blue-400)' }} />
+                        <p style={{ fontWeight: 600, margin: 0 }}>No transactions recorded for this business yet.</p>
+                        <p style={{ fontSize: '0.8rem', margin: '0.25rem 0 0' }}>Open today's day session to start entering sales and costs.</p>
+                    </div>
+                ) : (
+                    <div className="table-container">
+                        <table className="custom-table">
+                            <thead>
+                                <tr>
+                                    <th>Entry Type</th>
+                                    <th>Source / Category</th>
+                                    <th>Description</th>
+                                    <th>Amount</th>
+                                    <th>Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {recentTransactions.map((tx) => {
+                                    const isIncome = tx.type === 'income';
+                                    return (
+                                        <tr key={`${tx.type}-${tx.id}`}>
+                                            <td>
+                                                <span className={isIncome ? "badge-blue" : "badge-outline"}>
+                                                    {isIncome ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
+                                                    {isIncome ? 'Income' : tx.type === 'direct' ? 'Direct Exp' : 'Operating Exp'}
+                                                </span>
+                                            </td>
+                                            <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
+                                                {tx.source || tx.category}
+                                            </td>
+                                            <td>{tx.description || '—'}</td>
+                                            <td style={{ fontWeight: 700, color: isIncome ? 'var(--blue-600)' : 'var(--text-primary)' }}>
+                                                {isIncome ? '+' : '-'}{formatCurrency(tx.amount)}
+                                            </td>
+                                            <td>{formatDate(tx.created_at)}</td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
                     </div>
                 )}
+            </section>
 
-                {expenseModal && (
-                    <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-                        <form onSubmit={handleAddExpense} className={`rounded-2xl p-6 max-w-md w-full space-y-4 border ${darkMode ? 'bg-slate-900 border-slate-800 text-slate-100' : 'bg-white border-slate-100 text-slate-900'}`}>
-                            <h3 className="text-lg font-bold">Record Expense</h3>
-                            <input type="number" step="0.01" placeholder="Amount" value={amount} onChange={e => setAmount(e.target.value)} required className={`w-full p-2.5 border rounded-lg ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-slate-50 border-slate-200'}`} />
-                            <input type="text" placeholder="Category (e.g., Rent, Inventory)" value={category} onChange={e => setCategory(e.target.value)} required className={`w-full p-2.5 border rounded-lg ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-slate-50 border-slate-200'}`} />
-                            <select value={expenseType} onChange={e => setExpenseType(e.target.value)} className={`w-full p-2.5 border rounded-lg ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
-                                <option value="direct">Direct Expense (COGS / Stock)</option>
-                                <option value="operating">Operating Expense (Rent / Salaries)</option>
-                            </select>
-                            <input type="text" placeholder="Description (Optional)" value={description} onChange={e => setDescription(e.target.value)} className={`w-full p-2.5 border rounded-lg ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-slate-50 border-slate-200'}`} />
-                            <div className="flex justify-end gap-2 pt-2">
-                                <button type="button" onClick={() => setExpenseModal(false)} className="px-4 py-2 border rounded-lg text-sm">Cancel</button>
-                                <button type="submit" className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium">Save Expense</button>
+            {/* MODAL: Record Income */}
+            <Modal 
+                isOpen={incomeModal} 
+                onClose={() => setIncomeModal(false)} 
+                title="Record New Income"
+                footer={
+                    <>
+                        <button type="button" onClick={() => setIncomeModal(false)} className="btn-outline">
+                            Cancel
+                        </button>
+                        <button type="submit" form="income-form" disabled={actionLoading} className="btn-primary" style={{ minWidth: '130px' }}>
+                            {actionLoading ? 'Saving...' : 'Save Income'}
+                        </button>
+                    </>
+                }
+            >
+                <form id="income-form" onSubmit={handleAddIncome} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                    <div className="input-group">
+                        <label className="input-label">Income Amount (TSh)</label>
+                        <input 
+                            type="number" 
+                            step="any" 
+                            min="1"
+                            required
+                            placeholder="e.g. 50000"
+                            value={incomeAmount}
+                            onChange={(e) => setIncomeAmount(e.target.value)}
+                            className="input-control"
+                            style={{ fontSize: '1.1rem', fontWeight: 700 }}
+                        />
+                        {/* Quick Amount Helper Chips */}
+                        <div className="quick-chips">
+                            <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 600 }}>Quick Add:</span>
+                            {[10000, 20000, 50000, 100000].map((val) => (
+                                <button
+                                    key={val}
+                                    type="button"
+                                    onClick={() => {
+                                        const current = parseFloat(incomeAmount) || 0;
+                                        setIncomeAmount(String(current + val));
+                                    }}
+                                    className="chip-btn"
+                                >
+                                    +{val.toLocaleString()}
+                                </button>
+                            ))}
+                            {incomeAmount && (
+                                <button
+                                    type="button"
+                                    onClick={() => setIncomeAmount('')}
+                                    className="chip-btn"
+                                    style={{ color: 'var(--text-muted)' }}
+                                >
+                                    Clear
+                                </button>
+                            )}
+                        </div>
+                    </div>
+
+                    <div className="input-group">
+                        <label className="input-label">Revenue Source</label>
+                        <input 
+                            type="text" 
+                            required
+                            placeholder="e.g. Cash Sale, M-Pesa, POS"
+                            value={incomeSource}
+                            onChange={(e) => setIncomeSource(e.target.value)}
+                            className="input-control"
+                        />
+                        {/* Quick Source Chips */}
+                        <div className="quick-chips">
+                            {['Cash Sale', 'M-Pesa / Tigo Pesa', 'POS Card', 'Bank Transfer'].map((s) => (
+                                <button
+                                    key={s}
+                                    type="button"
+                                    onClick={() => setIncomeSource(s)}
+                                    className={`chip-btn ${incomeSource === s ? 'active' : ''}`}
+                                >
+                                    {s}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="input-group">
+                        <label className="input-label">Description (Optional)</label>
+                        <textarea 
+                            rows={2}
+                            placeholder="Receipt number or notes"
+                            value={incomeDesc}
+                            onChange={(e) => setIncomeDesc(e.target.value)}
+                            className="input-control"
+                            style={{ resize: 'vertical' }}
+                        />
+                    </div>
+                </form>
+            </Modal>
+
+            {/* MODAL: Record Expense */}
+            <Modal 
+                isOpen={expenseModal} 
+                onClose={() => setExpenseModal(false)} 
+                title="Record Business Expense"
+                footer={
+                    <>
+                        <button type="button" onClick={() => setExpenseModal(false)} className="btn-outline">
+                            Cancel
+                        </button>
+                        <button type="submit" form="expense-form" disabled={actionLoading} className="btn-primary" style={{ minWidth: '130px' }}>
+                            {actionLoading ? 'Saving...' : 'Save Expense'}
+                        </button>
+                    </>
+                }
+            >
+                <form id="expense-form" onSubmit={handleAddExpense} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                    <div className="input-group">
+                        <label className="input-label">Expense Amount (TSh)</label>
+                        <input 
+                            type="number" 
+                            step="any" 
+                            min="1"
+                            required
+                            placeholder="e.g. 25000"
+                            value={expenseAmount}
+                            onChange={(e) => setExpenseAmount(e.target.value)}
+                            className="input-control"
+                            style={{ fontSize: '1.1rem', fontWeight: 700 }}
+                        />
+                        {/* Quick Expense Amount Chips */}
+                        <div className="quick-chips">
+                            <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 600 }}>Quick Add:</span>
+                            {[5000, 10000, 20000, 50000].map((val) => (
+                                <button
+                                    key={val}
+                                    type="button"
+                                    onClick={() => {
+                                        const current = parseFloat(expenseAmount) || 0;
+                                        setExpenseAmount(String(current + val));
+                                    }}
+                                    className="chip-btn"
+                                >
+                                    +{val.toLocaleString()}
+                                </button>
+                            ))}
+                            {expenseAmount && (
+                                <button
+                                    type="button"
+                                    onClick={() => setExpenseAmount('')}
+                                    className="chip-btn"
+                                    style={{ color: 'var(--text-muted)' }}
+                                >
+                                    Clear
+                                </button>
+                            )}
+                        </div>
+                    </div>
+
+                    <div className="input-group">
+                        <label className="input-label">Expense Category</label>
+                        <input 
+                            type="text" 
+                            required
+                            placeholder="e.g. Stock Purchase, Rent, Transport"
+                            value={expenseCategory}
+                            onChange={(e) => setExpenseCategory(e.target.value)}
+                            className="input-control"
+                        />
+                        {/* Quick Category Suggestions */}
+                        <div className="quick-chips">
+                            {['Stock / Goods', 'Shop Rent', 'Transport / Fare', 'Electricity / Water', 'Staff Wages'].map((cat) => (
+                                <button
+                                    key={cat}
+                                    type="button"
+                                    onClick={() => setExpenseCategory(cat)}
+                                    className={`chip-btn ${expenseCategory === cat ? 'active' : ''}`}
+                                >
+                                    {cat}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="input-group">
+                        <label className="input-label">Expense Classification</label>
+                        <select 
+                            value={expenseType}
+                            onChange={(e) => setExpenseType(e.target.value)}
+                            className="input-control"
+                        >
+                            <option value="direct">Direct Expense (Stock / Raw materials - impacts Gross Profit)</option>
+                            <option value="operating">Operating Expense (Rent, Power, Wages - impacts Net Profit)</option>
+                        </select>
+                    </div>
+
+                    <div className="input-group">
+                        <label className="input-label">Description (Optional)</label>
+                        <textarea 
+                            rows={2}
+                            placeholder="Vendor invoice, receipt note, or details"
+                            value={expenseDesc}
+                            onChange={(e) => setExpenseDesc(e.target.value)}
+                            className="input-control"
+                            style={{ resize: 'vertical' }}
+                        />
+                    </div>
+                </form>
+            </Modal>
+
+            {/* MODAL: Day Summary (Shown on Day Close) */}
+            <Modal isOpen={daySummaryModal} onClose={() => setDaySummaryModal(false)} title="Day Closed — Session Summary">
+                {daySummaryData && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                        <div style={{ textAlign: 'center', padding: '1rem', backgroundColor: 'var(--bg-subtle)', borderRadius: 'var(--radius-md)' }}>
+                            <span className="badge-blue" style={{ marginBottom: '0.5rem' }}>Date: {daySummaryData.date}</span>
+                            <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
+                                Session Finalized
+                            </h3>
+                            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: '0.25rem 0 0' }}>
+                                Here is the financial calculation for today's trade:
+                            </p>
+                        </div>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem', borderBottom: '1px solid var(--border-subtle)' }}>
+                                <span style={{ color: 'var(--text-secondary)' }}>Total Income:</span>
+                                <strong style={{ color: 'var(--blue-600)' }}>{formatCurrency(daySummaryData.totalIncome)}</strong>
                             </div>
-                        </form>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem', borderBottom: '1px solid var(--border-subtle)' }}>
+                                <span style={{ color: 'var(--text-secondary)' }}>Direct Expenses (COGS):</span>
+                                <strong>{formatCurrency(daySummaryData.totalDirectExp)}</strong>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem', borderBottom: '1px solid var(--border-subtle)', backgroundColor: 'var(--bg-subtle)', borderRadius: 'var(--radius-sm)' }}>
+                                <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>Gross Profit:</span>
+                                <strong style={{ color: 'var(--blue-600)', fontWeight: 800 }}>{formatCurrency(daySummaryData.grossProfit)}</strong>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem', borderBottom: '1px solid var(--border-subtle)' }}>
+                                <span style={{ color: 'var(--text-secondary)' }}>Operating Expenses:</span>
+                                <strong>{formatCurrency(daySummaryData.totalOperatingExp)}</strong>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.85rem', background: 'var(--blue-gradient)', color: '#ffffff', borderRadius: 'var(--radius-md)' }}>
+                                <span style={{ fontWeight: 700, color: '#ffffff' }}>Net Profit / Loss:</span>
+                                <strong style={{ fontSize: '1.2rem', color: '#ffffff', fontWeight: 900 }}>{formatCurrency(daySummaryData.netProfit)}</strong>
+                            </div>
+                        </div>
+
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1rem' }}>
+                            <button onClick={() => setDaySummaryModal(false)} className="btn-primary" style={{ width: '100%' }}>
+                                Close Summary
+                            </button>
+                        </div>
                     </div>
                 )}
-
-            </div>
+            </Modal>
         </div>
     );
 };
