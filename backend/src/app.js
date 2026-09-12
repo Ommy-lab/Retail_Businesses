@@ -19,9 +19,9 @@ app.use(express.json());
 
 // API Routes
 app.use('/auth', authRoutes);
-app.use('/api/admin', adminRoutes);
-app.use('/api/business', businessRoutes);
-app.use('/api/business/reports', reportRoutes);
+app.use('/admin', adminRoutes);
+app.use('/business', businessRoutes);
+app.use('/business/reports', reportRoutes);
 
 // Health Check Root Endpoint
 app.get('/', (req, res) => {
