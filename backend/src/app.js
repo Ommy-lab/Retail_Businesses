@@ -18,7 +18,7 @@ app.use(cors());
 app.use(express.json());
 
 // API Routes
-app.use('/api/auth', authRoutes);
+app.use('/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/business', businessRoutes);
 app.use('/api/business/reports', reportRoutes);
