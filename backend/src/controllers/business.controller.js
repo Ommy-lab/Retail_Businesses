@@ -313,3 +313,91 @@ export const updateSettings = async (req, res) => {
         client.release();
     }
 };
+
+// Get all transactions (combined incomes and expenses) for the business
+export const getTransactions = async (req, res) => {
+    const business_id = req.user.business_id;
+
+    try {
+        const incomes = await pool.query(
+            `SELECT id, amount, source, description, created_at, 'income' AS type 
+            FROM incomes WHERE business_id = $1 ORDER BY created_at DESC`,
+            [business_id]
+        );
+
+        const expenses = await pool.query(
+            `SELECT id, amount, category, description, created_at, expense_type AS type 
+            FROM expenses WHERE business_id = $1 ORDER BY created_at DESC`,
+            [business_id]
+        );
+
+        const transactions = [...incomes.rows, ...expenses.rows].sort(
+            (a, b) => new Date(b.created_at) - new Date(a.created_at)
+        );
+
+        res.json({ transactions });
+    } catch (err) {
+        console.error("Get transactions error:", err);
+        res.status(500).json({ error: "Internal server error." });
+    }
+};
+
+// Delete Income Entry (Blocked if session is locked/closed)
+export const deleteIncome = async (req, res) => {
+    const business_id = req.user.business_id;
+    const { id } = req.params;
+
+    try {
+        const incomeRes = await pool.query(
+            'SELECT session_id FROM incomes WHERE id = $1 AND business_id = $2',
+            [id, business_id]
+        );
+
+        if (incomeRes.rows.length === 0) {
+            return res.status(404).json({ error: "Income transaction not found." });
+        }
+
+        const session_id = incomeRes.rows[0].session_id;
+        const sessionRes = await pool.query('SELECT status FROM daily_sessions WHERE id = $1', [session_id]);
+
+        if (sessionRes.rows[0]?.status !== 'open') {
+            return res.status(400).json({ error: "Action denied. The business day session is closed and locked." });
+        }
+
+        await pool.query('DELETE FROM incomes WHERE id = $1', [id]);
+        res.json({ message: "Income deleted successfully." });
+    } catch (err) {
+        console.error("Delete income error:", err);
+        res.status(500).json({ error: "Internal server error." });
+    }
+};
+
+// Delete Expense Entry (Blocked if session is locked/closed)
+export const deleteExpense = async (req, res) => {
+    const business_id = req.user.business_id;
+    const { id } = req.params;
+
+    try {
+        const expenseRes = await pool.query(
+            'SELECT session_id FROM expenses WHERE id = $1 AND business_id = $2',
+            [id, business_id]
+        );
+
+        if (expenseRes.rows.length === 0) {
+            return res.status(404).json({ error: "Expense transaction not found." });
+        }
+
+        const session_id = expenseRes.rows[0].session_id;
+        const sessionRes = await pool.query('SELECT status FROM daily_sessions WHERE id = $1', [session_id]);
+
+        if (sessionRes.rows[0]?.status !== 'open') {
+            return res.status(400).json({ error: "Action denied. The business day session is closed and locked." });
+        }
+
+        await pool.query('DELETE FROM expenses WHERE id = $1', [id]);
+        res.json({ message: "Expense deleted successfully." });
+    } catch (err) {
+        console.error("Delete expense error:", err);
+        res.status(500).json({ error: "Internal server error." });
+    }
+};

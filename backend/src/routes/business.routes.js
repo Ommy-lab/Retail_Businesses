@@ -1,10 +1,16 @@
 import express from 'express';
-import { openDay, closeDay, addIncome, addExpense } from '../controllers/business.controller.js';
+import { openDay,
+    closeDay,
+    addIncome,
+    addExpense,
+    getSettings,
+    updateSettings,
+    getBusinessDashboard,
+    getTransactions,
+    deleteIncome,
+    deleteExpense } from '../controllers/business.controller.js';
 import { verifyToken, requireRole } from '../middlewares/auth.middleware.js';
 
-import { getBusinessDashboard } from '../controllers/business.controller.js';
-
-import { getSettings, updateSettings } from '../controllers/business.controller.js';
 import { upload } from '../middlewares/upload.middleware.js';
 
 import { checkAutoCloseSession } from '../middlewares/session.middleware.js';
@@ -24,6 +30,10 @@ router.post('/expenses', addExpense);
 // ... inside router definitions
 router.get('/settings', getSettings);
 router.put('/settings', upload.single('logo'), updateSettings);
+
+router.get('/transactions', getTransactions);
+router.get('/income/:id', deleteIncome);
+router.get('/expense/:id', deleteExpense);
 
 router.get('/dashboard', getBusinessDashboard);
 
