@@ -22,20 +22,48 @@ export const getFilteredReports = async (req, res) => {
         }
 
         const reportQuery = `
-            SELECT 
-                ds.id as session_id,
-                ds.session_date,
-                ds.status,
-                COALESCE(SUM(DISTINCT i.amount), 0) AS total_income,
-                COALESCE(SUM(DISTINCT CASE WHEN e.expense_type = 'direct' THEN e.amount ELSE 0 END), 0) AS total_direct_exp,
-                COALESCE(SUM(DISTINCT CASE WHEN e.expense_type = 'operating' THEN e.amount ELSE 0 END), 0) AS total_operating_exp
-            FROM daily_sessions ds
-            LEFT JOIN incomes i ON ds.id = i.session_id
-            LEFT JOIN expenses e ON ds.id = e.session_id
-            WHERE ds.business_id = $1 ${dateCondition}
-            GROUP BY ds.id, ds.session_date, ds.status
-            ORDER BY ds.session_date DESC;
-        `;
+    SELECT 
+        ds.id AS session_id,
+        ds.session_date,
+        ds.status,
+
+        COALESCE(i.total_income, 0) AS total_income,
+        COALESCE(e.total_direct_exp, 0) AS total_direct_exp,
+        COALESCE(e.total_operating_exp, 0) AS total_operating_exp
+
+    FROM daily_sessions ds
+
+    -- Aggregate all income transactions for each session separately
+    LEFT JOIN (
+        SELECT
+            session_id,
+            SUM(amount) AS total_income
+        FROM incomes
+        GROUP BY session_id
+    ) i ON ds.id = i.session_id
+
+    -- Aggregate all expenses for each session separately
+    LEFT JOIN (
+        SELECT
+            session_id,
+            SUM(CASE
+                WHEN expense_type = 'direct' THEN amount
+                ELSE 0
+            END) AS total_direct_exp,
+
+            SUM(CASE
+                WHEN expense_type = 'operating' THEN amount
+                ELSE 0
+            END) AS total_operating_exp
+
+        FROM expenses
+        GROUP BY session_id
+    ) e ON ds.id = e.session_id
+
+    WHERE ds.business_id = $1 ${dateCondition}
+
+    ORDER BY ds.session_date DESC;
+`;
 
         const result = await pool.query(reportQuery, queryParams);
 
