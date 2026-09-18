@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import API from '../../services/api';
 import { Modal } from '../../components/common/Modal';
 import { formatDate } from '../../utils/formatters';
@@ -14,7 +14,8 @@ import {
     Calendar, 
     Layers, 
     Users,
-    ExternalLink
+    ExternalLink,
+    X
 } from 'lucide-react';
 
 export const AdminDashboard = () => {
@@ -23,12 +24,25 @@ export const AdminDashboard = () => {
     const [search, setSearch] = useState('');
     const [tabFilter, setTabFilter] = useState('all'); // 'all', 'active', 'archived'
 
-    // Modal: Register Business
-    const [registerModal, setRegisterModal] = useState(false);
+    // Flexible Inline Business Registration Section
+    const [showRegisterForm, setShowRegisterForm] = useState(false);
+    const registerSectionRef = useRef(null);
     const [newBizName, setNewBizName] = useState('');
     const [newUsername, setNewUsername] = useState('');
     const [newPassword, setNewPassword] = useState('');
     const [registerLoading, setRegisterLoading] = useState(false);
+
+    const toggleRegisterForm = () => {
+        setShowRegisterForm(prev => {
+            const next = !prev;
+            if (next) {
+                setTimeout(() => {
+                    registerSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                }, 60);
+            }
+            return next;
+        });
+    };
 
     // Modal: Tenant Reports inspection
     const [reportsModal, setReportsModal] = useState(false);
@@ -67,7 +81,7 @@ export const AdminDashboard = () => {
             setNewBizName('');
             setNewUsername('');
             setNewPassword('');
-            setRegisterModal(false);
+            setShowRegisterForm(false);
             setStatusMessage({ type: 'success', text: `New business "${newBizName}" onboarded successfully.` });
             setTimeout(() => setStatusMessage({ type: '', text: '' }), 4000);
             await fetchAdminDashboard();
@@ -147,13 +161,112 @@ export const AdminDashboard = () => {
 
                 {/* Primary Action: Register New Business */}
                 <button 
-                    onClick={() => setRegisterModal(true)}
+                    type="button"
+                    onClick={toggleRegisterForm}
                     className="btn-primary"
-                    style={{ padding: '0.75rem 1.5rem', fontSize: '0.9rem' }}
+                    style={{ 
+                        padding: '0.75rem 1.5rem', 
+                        fontSize: '0.9rem',
+                        background: showRegisterForm ? 'var(--blue-700)' : 'var(--blue-gradient)',
+                        outline: showRegisterForm ? '2px solid var(--blue-400)' : 'none'
+                    }}
                 >
-                    <UserPlus size={18} /> Register New Business
+                    <UserPlus size={18} /> {showRegisterForm ? 'Close Registration' : 'Register New Business'}
                 </button>
             </div>
+
+            {/* Inline Flexible Business Registration Section (Scrollable with the page) */}
+            {showRegisterForm && (
+                <section ref={registerSectionRef} className="filling-card-section animate-fade-in">
+                    <div className="filling-card-header">
+                        <div className="filling-card-title-group">
+                            <div className="filling-card-icon">
+                                <UserPlus size={20} />
+                            </div>
+                            <div>
+                                <h3 style={{ fontSize: '1.2rem', fontWeight: 800, margin: 0, color: 'var(--text-primary)' }}>
+                                    Register New Retail Business
+                                </h3>
+                                <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: '0.2rem 0 0' }}>
+                                    Create a tenant organization and provision administrator credentials
+                                </p>
+                            </div>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                            <span className="badge-blue">New Tenant</span>
+                            <button 
+                                type="button"
+                                onClick={() => setShowRegisterForm(false)}
+                                className="btn-icon"
+                                aria-label="Close form"
+                                style={{ padding: '0.45rem', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-full)' }}
+                            >
+                                <X size={18} />
+                            </button>
+                        </div>
+                    </div>
+
+                    <form onSubmit={handleRegisterBusiness} className="filling-card-body">
+                        <div className="input-group">
+                            <label className="input-label">Business Organization Name</label>
+                            <input 
+                                type="text"
+                                required
+                                placeholder="e.g. Skyline Supermarket"
+                                value={newBizName}
+                                onChange={(e) => setNewBizName(e.target.value)}
+                                className="input-control"
+                                autoFocus
+                            />
+                        </div>
+
+                        <div className="input-group">
+                            <label className="input-label">Business Admin Username</label>
+                            <input 
+                                type="text"
+                                required
+                                placeholder="e.g. skyline_admin"
+                                value={newUsername}
+                                onChange={(e) => setNewUsername(e.target.value)}
+                                className="input-control"
+                            />
+                        </div>
+
+                        <div className="input-group">
+                            <label className="input-label">Initial Access Password</label>
+                            <input 
+                                type="password"
+                                required
+                                placeholder="••••••••"
+                                value={newPassword}
+                                onChange={(e) => setNewPassword(e.target.value)}
+                                className="input-control"
+                            />
+                            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                                The business user can modify this password later from their settings.
+                            </span>
+                        </div>
+
+                        <div className="filling-card-footer">
+                            <button 
+                                type="button" 
+                                onClick={() => setShowRegisterForm(false)} 
+                                className="btn-outline"
+                            >
+                                Cancel
+                            </button>
+                            <button 
+                                type="submit" 
+                                disabled={registerLoading} 
+                                className="btn-primary"
+                                style={{ minWidth: '190px' }}
+                            >
+                                {registerLoading ? 'Provisioning...' : 'Create Business Account'}
+                            </button>
+                        </div>
+                    </form>
+                </section>
+            )}
 
             {/* Notification alert */}
             {statusMessage.text && (
@@ -401,63 +514,6 @@ export const AdminDashboard = () => {
                 </div>
             </div>
 
-            {/* MODAL: Register New Business */}
-            <Modal 
-                isOpen={registerModal} 
-                onClose={() => setRegisterModal(false)} 
-                title="Register New Retail Business"
-                footer={
-                    <>
-                        <button type="button" onClick={() => setRegisterModal(false)} className="btn-outline">
-                            Cancel
-                        </button>
-                        <button type="submit" form="register-form" disabled={registerLoading} className="btn-primary">
-                            Create Business Account
-                        </button>
-                    </>
-                }
-            >
-                <form id="register-form" onSubmit={handleRegisterBusiness} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                    <div className="input-group">
-                        <label className="input-label">Business Organization Name</label>
-                        <input 
-                            type="text"
-                            required
-                            placeholder="e.g. Skyline Supermarket"
-                            value={newBizName}
-                            onChange={(e) => setNewBizName(e.target.value)}
-                            className="input-control"
-                        />
-                    </div>
-
-                    <div className="input-group">
-                        <label className="input-label">Business Admin Username</label>
-                        <input 
-                            type="text"
-                            required
-                            placeholder="e.g. skyline_admin"
-                            value={newUsername}
-                            onChange={(e) => setNewUsername(e.target.value)}
-                            className="input-control"
-                        />
-                    </div>
-
-                    <div className="input-group">
-                        <label className="input-label">Initial Access Password</label>
-                        <input 
-                            type="password"
-                            required
-                            placeholder="••••••••"
-                            value={newPassword}
-                            onChange={(e) => setNewPassword(e.target.value)}
-                            className="input-control"
-                        />
-                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                            The business user can modify this password later from their settings.
-                        </span>
-                    </div>
-                </form>
-            </Modal>
 
             {/* MODAL: Tenant Session History & Reports */}
             <Modal isOpen={reportsModal} onClose={() => setReportsModal(false)} title="Tenant Session Log & Reports" maxWidth="680px">
