@@ -26,15 +26,23 @@ export const Modal = ({ isOpen, onClose, title, children, footer, maxWidth = '54
             onClick={(e) => {
                 if (e.target === e.currentTarget) onClose();
             }}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="modal-title"
         >
             <div 
-                className="modal-dialog animate-scale-in"
-                style={{ maxWidth }}
+                className="modal-dialog"
+                style={{ '--dialog-max-width': maxWidth }}
                 onClick={(e) => e.stopPropagation()}
             >
+                {/* Mobile Bottom Sheet Pull Indicator */}
+                <div className="modal-sheet-handle-container" aria-hidden="true">
+                    <div className="modal-sheet-handle" />
+                </div>
+
                 {/* Modal Header */}
                 <div className="modal-header">
-                    <h3 style={{
+                    <h3 id="modal-title" style={{
                         fontSize: '1.1rem',
                         fontWeight: 700,
                         color: 'var(--text-primary)',
@@ -44,8 +52,7 @@ export const Modal = ({ isOpen, onClose, title, children, footer, maxWidth = '54
                     </h3>
                     <button 
                         onClick={onClose}
-                        className="btn-icon"
-                        style={{ padding: '0.4rem', border: 'none', background: 'transparent' }}
+                        className="btn-icon modal-close-btn"
                         aria-label="Close modal"
                     >
                         <X size={18} />

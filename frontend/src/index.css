@@ -485,12 +485,10 @@ html.dark .tab-btn.active {
    RESPONSIVE MOBILE VIEW & SIDEBAR DRAWER RULES
    ========================================================================== */
 
-/* Mobile Menu Button in Header */
 .mobile-menu-btn {
     display: none !important;
 }
 
-/* Desktop vs Mobile Sidebar */
 .app-sidebar {
     width: 260px;
     background-color: var(--bg-surface);
@@ -511,7 +509,6 @@ html.dark .tab-btn.active {
     display: none;
 }
 
-/* Tablet & Mobile Screens (< 1024px) */
 @media (max-width: 1024px) {
     .mobile-menu-btn {
         display: inline-flex !important;
@@ -560,7 +557,6 @@ html.dark .tab-btn.active {
     }
 }
 
-/* Small Phone Screens (< 640px) */
 @media (max-width: 640px) {
     .app-main {
         padding: 1rem 0.75rem !important;
@@ -613,7 +609,7 @@ html.dark .tab-btn.active {
 }
 
 /* ==========================================================================
-   FLEXIBLE RESPONSIVE MODALS
+   FLEXIBLE RESPONSIVE MODALS & MOBILE BOTTOM SHEET
    ========================================================================== */
 .modal-overlay {
     position: fixed;
@@ -625,62 +621,79 @@ html.dark .tab-btn.active {
     justify-content: center;
     padding: 1.25rem;
     z-index: 9999;
+    box-sizing: border-box;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
-}
-
-@media (max-width: 640px) {
-    .modal-overlay {
-        align-items: flex-start !important;
-        padding: 0.75rem !important;
-        padding-top: 1.5rem !important;
-    }
+    overscroll-behavior: contain;
 }
 
 .modal-dialog {
     width: 100%;
+    max-width: var(--dialog-max-width, 540px);
+    max-height: min(88vh, 88dvh);
     background-color: var(--bg-surface);
     border: 1px solid var(--border-main);
     border-radius: var(--radius-xl);
     box-shadow: 0 25px 50px -12px rgba(10, 25, 47, 0.5), 0 0 25px var(--border-glow);
-    overflow: hidden;
     display: flex;
     flex-direction: column;
-    max-height: calc(100vh - 2.5rem);
-    max-height: calc(100dvh - 2.5rem);
+    overflow: hidden;
     position: relative;
+    box-sizing: border-box;
+    animation: scaleIn 0.25s var(--transition-smooth) forwards;
 }
 
-@media (max-width: 640px) {
-    .modal-dialog {
-        border-radius: var(--radius-lg);
-        max-height: calc(100dvh - 2rem) !important;
-    }
+/* Hidden on desktop, visible on mobile bottom sheet */
+.modal-sheet-handle-container {
+    display: none;
+}
+
+.modal-sheet-handle {
+    width: 44px;
+    height: 4px;
+    background-color: var(--border-focus);
+    opacity: 0.5;
+    border-radius: var(--radius-full);
 }
 
 .modal-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 1rem 1.25rem;
+    padding: 1.1rem 1.35rem;
     border-bottom: 1px solid var(--border-subtle);
     background: var(--blue-gradient-subtle);
     flex-shrink: 0;
 }
 
+.modal-close-btn {
+    padding: 0.45rem;
+    border-radius: var(--radius-full);
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all var(--transition-fast);
+}
+
+.modal-close-btn:hover {
+    background-color: var(--bg-subtle);
+    color: var(--text-primary);
+    border-color: var(--border-subtle);
+}
+
 .modal-body {
-    padding: 1.25rem;
+    padding: 1.35rem;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
     flex: 1;
     display: flex;
     flex-direction: column;
-}
-
-@media (max-width: 640px) {
-    .modal-body {
-        padding: 1rem;
-    }
+    gap: 1.15rem;
 }
 
 .modal-sticky-footer {
@@ -688,7 +701,7 @@ html.dark .tab-btn.active {
     bottom: 0;
     background-color: var(--bg-surface);
     border-top: 1px solid var(--border-subtle);
-    padding: 0.85rem 1.25rem;
+    padding: 0.9rem 1.35rem;
     display: flex;
     justify-content: flex-end;
     align-items: center;
@@ -701,23 +714,27 @@ html.dark .tab-btn.active {
 .quick-chips {
     display: flex;
     align-items: center;
-    gap: 0.4rem;
+    gap: 0.45rem;
     flex-wrap: wrap;
-    margin-top: 0.4rem;
+    margin-top: 0.45rem;
 }
 
 .chip-btn {
-    padding: 0.25rem 0.6rem;
+    padding: 0.35rem 0.75rem;
     border-radius: var(--radius-full);
     border: 1px solid var(--border-main);
     background-color: var(--bg-subtle);
     color: var(--blue-600);
-    font-size: 0.725rem;
+    font-size: 0.775rem;
     font-weight: 600;
     cursor: pointer;
     transition: all var(--transition-fast);
     font-family: 'Plus Jakarta Sans', sans-serif;
     user-select: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 30px;
 }
 
 html.dark .chip-btn {
@@ -739,4 +756,198 @@ html.dark .chip-btn:hover {
     background-color: var(--blue-600);
     color: #ffffff;
     border-color: var(--blue-600);
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.35);
+}
+
+.chip-btn.chip-btn-clear {
+    color: var(--text-muted);
+    border-style: dashed;
+}
+
+.chip-btn.chip-btn-clear:hover {
+    background-color: var(--bg-subtle);
+    border-color: var(--blue-400);
+    color: var(--text-primary);
+}
+
+/* ==========================================================================
+   MOBILE VIEW MODAL TRANSFORMATION (< 640px)
+   Transforms rigid centered popup into a native-like slide-up bottom sheet
+   ========================================================================== */
+@media (max-width: 640px) {
+    .modal-overlay {
+        align-items: flex-end !important;
+        justify-content: center !important;
+        padding: 0 !important;
+        background-color: rgba(6, 12, 25, 0.8) !important;
+    }
+
+    .modal-dialog {
+        width: 100% !important;
+        max-width: 100% !important;
+        max-height: 92vh !important;
+        max-height: 92dvh !important;
+        border-radius: 1.5rem 1.5rem 0 0 !important;
+        border-left: none !important;
+        border-right: none !important;
+        border-bottom: none !important;
+        margin: 0 !important;
+        box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.5) !important;
+        animation: modalSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+    }
+
+    .modal-sheet-handle-container {
+        display: flex !important;
+        justify-content: center !important;
+        align-items: center !important;
+        padding-top: 0.75rem !important;
+        padding-bottom: 0.2rem !important;
+        background: var(--blue-gradient-subtle) !important;
+        width: 100% !important;
+    }
+
+    .modal-header {
+        padding: 0.65rem 1.15rem 0.85rem !important;
+    }
+
+    .modal-body {
+        padding: 1.15rem 1.15rem 1.5rem !important;
+        gap: 1.25rem !important;
+    }
+
+    /* Prevent mobile browser forced zoom on inputs */
+    .modal-body .input-control,
+    .input-control {
+        font-size: 1rem !important;
+        padding: 0.75rem 0.95rem !important;
+    }
+
+    .modal-sticky-footer {
+        padding: 0.85rem 1.15rem max(1rem, env(safe-area-inset-bottom)) !important;
+        gap: 0.75rem !important;
+        display: flex !important;
+    }
+
+    .modal-sticky-footer button {
+        flex: 1 1 0% !important;
+        min-height: 44px !important;
+        padding: 0.75rem 1rem !important;
+        font-size: 0.95rem !important;
+        justify-content: center !important;
+    }
+
+    .quick-chips {
+        gap: 0.5rem !important;
+        margin-top: 0.5rem !important;
+    }
+
+    .chip-btn {
+        padding: 0.4rem 0.8rem !important;
+        font-size: 0.825rem !important;
+        min-height: 36px !important;
+    }
+}
+
+@keyframes modalSlideUp {
+    from {
+        transform: translateY(100%);
+        opacity: 0.5;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* ==========================================================================
+   INLINE TRANSACTION FILLING SECTION (Flexible & Page Scrollable)
+   ========================================================================== */
+.filling-card-section {
+    background-color: var(--bg-surface);
+    border: 2px solid var(--blue-500);
+    border-radius: var(--radius-xl);
+    box-shadow: 0 12px 36px rgba(37, 99, 235, 0.14), 0 0 20px var(--border-glow);
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    animation: slideDownFade 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    position: relative;
+    overflow: hidden;
+    scroll-margin-top: 2rem;
+}
+
+@keyframes slideDownFade {
+    from {
+        opacity: 0;
+        transform: translateY(-14px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.filling-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border-subtle);
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.filling-card-title-group {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.filling-card-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: var(--radius-md);
+    background-color: var(--blue-100);
+    color: var(--blue-700);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+html.dark .filling-card-icon {
+    background-color: var(--blue-900);
+    color: var(--blue-300);
+}
+
+.filling-card-footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--border-subtle);
+    flex-wrap: wrap;
+}
+
+@media (max-width: 640px) {
+    .filling-card-section {
+        padding: 1.25rem 1rem;
+        border-radius: var(--radius-lg);
+        gap: 1.15rem;
+    }
+
+    .filling-card-footer {
+        flex-direction: column-reverse;
+        gap: 0.65rem;
+        width: 100%;
+    }
+
+    .filling-card-footer button {
+        width: 100% !important;
+        justify-content: center !important;
+        min-height: 44px;
+        font-size: 0.95rem;
+    }
 }

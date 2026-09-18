@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext, useCallback } from 'react';
+import React, { useState, useEffect, useContext, useCallback, useRef } from 'react';
 import API from '../../services/api';
 import { AuthContext } from '../../context/AuthContext';
 import { Modal } from '../../components/common/Modal';
@@ -19,7 +19,8 @@ import {
     Receipt, 
     Building2,
     Layers,
-    FileSpreadsheet
+    FileSpreadsheet,
+    X
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -33,9 +34,11 @@ export const BusinessDashboard = () => {
     const [error, setError] = useState('');
     const [successMessage, setSuccessMessage] = useState('');
 
+    // Inline flexible form section state ('income' | 'expense' | null)
+    const [activeForm, setActiveForm] = useState(null);
+    const formSectionRef = useRef(null);
+
     // Modals
-    const [incomeModal, setIncomeModal] = useState(false);
-    const [expenseModal, setExpenseModal] = useState(false);
     const [daySummaryModal, setDaySummaryModal] = useState(false);
     const [daySummaryData, setDaySummaryData] = useState(null);
 
@@ -114,6 +117,18 @@ export const BusinessDashboard = () => {
         }
     };
 
+    const toggleForm = (type) => {
+        setActiveForm((prev) => {
+            const next = prev === type ? null : type;
+            if (next) {
+                setTimeout(() => {
+                    formSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                }, 60);
+            }
+            return next;
+        });
+    };
+
     // Add Income
     const handleAddIncome = async (e) => {
         e.preventDefault();
@@ -127,7 +142,7 @@ export const BusinessDashboard = () => {
             setIncomeAmount('');
             setIncomeSource('');
             setIncomeDesc('');
-            setIncomeModal(false);
+            setActiveForm(null);
             setSuccessMessage("Income entry recorded successfully.");
             setTimeout(() => setSuccessMessage(''), 3000);
             await fetchDashboard();
@@ -153,7 +168,7 @@ export const BusinessDashboard = () => {
             setExpenseCategory('');
             setExpenseDesc('');
             setExpenseType('direct');
-            setExpenseModal(false);
+            setActiveForm(null);
             setSuccessMessage("Expense entry recorded successfully.");
             setTimeout(() => setSuccessMessage(''), 3000);
             await fetchDashboard();
@@ -329,19 +344,30 @@ export const BusinessDashboard = () => {
                         {isSessionOpen && (
                             <>
                                 <button 
-                                    onClick={() => setIncomeModal(true)}
+                                    type="button"
+                                    onClick={() => toggleForm('income')}
                                     className="btn-primary"
-                                    style={{ background: 'var(--blue-gradient)' }}
+                                    style={{ 
+                                        background: activeForm === 'income' ? 'var(--blue-700)' : 'var(--blue-gradient)',
+                                        outline: activeForm === 'income' ? '2px solid var(--blue-400)' : 'none'
+                                    }}
                                 >
-                                    <PlusCircle size={17} /> Record Income
+                                    <PlusCircle size={17} /> {activeForm === 'income' ? 'Close Income Form' : 'Record Income'}
                                 </button>
                                 <button 
-                                    onClick={() => setExpenseModal(true)}
+                                    type="button"
+                                    onClick={() => toggleForm('expense')}
                                     className="btn-secondary"
+                                    style={{
+                                        borderColor: activeForm === 'expense' ? 'var(--blue-500)' : undefined,
+                                        backgroundColor: activeForm === 'expense' ? 'var(--bg-subtle)' : undefined,
+                                        outline: activeForm === 'expense' ? '2px solid var(--blue-400)' : 'none'
+                                    }}
                                 >
-                                    <PlusCircle size={17} /> Record Expense
+                                    <PlusCircle size={17} /> {activeForm === 'expense' ? 'Close Expense Form' : 'Record Expense'}
                                 </button>
                                 <button 
+                                    type="button"
                                     onClick={handleCloseDay}
                                     disabled={actionLoading}
                                     className="btn-outline"
@@ -354,6 +380,281 @@ export const BusinessDashboard = () => {
                     </div>
                 </div>
             </section>
+
+            {/* Inline Flexible Filling Section (Scrollable with the page) */}
+            {activeForm === 'income' && (
+                <section ref={formSectionRef} className="filling-card-section animate-fade-in">
+                    <div className="filling-card-header">
+                        <div className="filling-card-title-group">
+                            <div className="filling-card-icon">
+                                <ArrowUpRight size={20} />
+                            </div>
+                            <div>
+                                <h3 style={{ fontSize: '1.2rem', fontWeight: 800, margin: 0, color: 'var(--text-primary)' }}>
+                                    Record New Income
+                                </h3>
+                                <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: '0.2rem 0 0' }}>
+                                    Add revenue to today's active business session
+                                </p>
+                            </div>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                            <span className="badge-blue">Live Entry</span>
+                            <button 
+                                type="button"
+                                onClick={() => setActiveForm(null)}
+                                className="btn-icon"
+                                aria-label="Close form"
+                                style={{ padding: '0.45rem', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-full)' }}
+                            >
+                                <X size={18} />
+                            </button>
+                        </div>
+                    </div>
+
+                    <form onSubmit={handleAddIncome} className="filling-card-body">
+                        <div className="input-group">
+                            <label className="input-label">Income Amount (TSh)</label>
+                            <input 
+                                type="number" 
+                                step="any" 
+                                min="1"
+                                required
+                                placeholder="e.g. 50000"
+                                value={incomeAmount}
+                                onChange={(e) => setIncomeAmount(e.target.value)}
+                                className="input-control"
+                                style={{ fontSize: '1.15rem', fontWeight: 700 }}
+                                autoFocus
+                            />
+                            {/* Quick Amount Helper Chips */}
+                            <div className="quick-chips">
+                                <span style={{ fontSize: '0.725rem', color: 'var(--text-muted)', fontWeight: 600 }}>Quick Add:</span>
+                                {[10000, 20000, 50000, 100000].map((val) => (
+                                    <button
+                                        key={val}
+                                        type="button"
+                                        onClick={() => {
+                                            const current = parseFloat(incomeAmount) || 0;
+                                            setIncomeAmount(String(current + val));
+                                        }}
+                                        className="chip-btn"
+                                    >
+                                        +{val.toLocaleString()}
+                                    </button>
+                                ))}
+                                {incomeAmount && (
+                                    <button
+                                        type="button"
+                                        onClick={() => setIncomeAmount('')}
+                                        className="chip-btn chip-btn-clear"
+                                    >
+                                        Clear
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="input-group">
+                            <label className="input-label">Revenue Source</label>
+                            <input 
+                                type="text" 
+                                required
+                                placeholder="e.g. Cash Sale, M-Pesa, POS"
+                                value={incomeSource}
+                                onChange={(e) => setIncomeSource(e.target.value)}
+                                className="input-control"
+                            />
+                            {/* Quick Source Chips */}
+                            <div className="quick-chips">
+                                {['Cash Sale', 'M-Pesa / Tigo Pesa', 'POS Card', 'Bank Transfer'].map((s) => (
+                                    <button
+                                        key={s}
+                                        type="button"
+                                        onClick={() => setIncomeSource(s)}
+                                        className={`chip-btn ${incomeSource === s ? 'active' : ''}`}
+                                    >
+                                        {s}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="input-group">
+                            <label className="input-label">Description (Optional)</label>
+                            <textarea 
+                                rows={2}
+                                placeholder="Receipt number, customer note, or details"
+                                value={incomeDesc}
+                                onChange={(e) => setIncomeDesc(e.target.value)}
+                                className="input-control"
+                                style={{ resize: 'vertical' }}
+                            />
+                        </div>
+
+                        <div className="filling-card-footer">
+                            <button 
+                                type="button" 
+                                onClick={() => setActiveForm(null)} 
+                                className="btn-outline"
+                            >
+                                Cancel
+                            </button>
+                            <button 
+                                type="submit" 
+                                disabled={actionLoading} 
+                                className="btn-primary" 
+                                style={{ minWidth: '150px' }}
+                            >
+                                {actionLoading ? 'Saving...' : 'Save Income'}
+                            </button>
+                        </div>
+                    </form>
+                </section>
+            )}
+
+            {activeForm === 'expense' && (
+                <section ref={formSectionRef} className="filling-card-section animate-fade-in">
+                    <div className="filling-card-header">
+                        <div className="filling-card-title-group">
+                            <div className="filling-card-icon" style={{ backgroundColor: 'var(--blue-100)', color: 'var(--blue-700)' }}>
+                                <ArrowDownRight size={20} />
+                            </div>
+                            <div>
+                                <h3 style={{ fontSize: '1.2rem', fontWeight: 800, margin: 0, color: 'var(--text-primary)' }}>
+                                    Record Business Expense
+                                </h3>
+                                <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: '0.2rem 0 0' }}>
+                                    Log operational or direct expenses for today's session
+                                </p>
+                            </div>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                            <span className="badge-outline">Cost Entry</span>
+                            <button 
+                                type="button"
+                                onClick={() => setActiveForm(null)}
+                                className="btn-icon"
+                                aria-label="Close form"
+                                style={{ padding: '0.45rem', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-full)' }}
+                            >
+                                <X size={18} />
+                            </button>
+                        </div>
+                    </div>
+
+                    <form onSubmit={handleAddExpense} className="filling-card-body">
+                        <div className="input-group">
+                            <label className="input-label">Expense Amount (TSh)</label>
+                            <input 
+                                type="number" 
+                                step="any" 
+                                min="1"
+                                required
+                                placeholder="e.g. 25000"
+                                value={expenseAmount}
+                                onChange={(e) => setExpenseAmount(e.target.value)}
+                                className="input-control"
+                                style={{ fontSize: '1.15rem', fontWeight: 700 }}
+                                autoFocus
+                            />
+                            {/* Quick Expense Amount Chips */}
+                            <div className="quick-chips">
+                                <span style={{ fontSize: '0.725rem', color: 'var(--text-muted)', fontWeight: 600 }}>Quick Add:</span>
+                                {[5000, 10000, 20000, 50000].map((val) => (
+                                    <button
+                                        key={val}
+                                        type="button"
+                                        onClick={() => {
+                                            const current = parseFloat(expenseAmount) || 0;
+                                            setExpenseAmount(String(current + val));
+                                        }}
+                                        className="chip-btn"
+                                    >
+                                        +{val.toLocaleString()}
+                                    </button>
+                                ))}
+                                {expenseAmount && (
+                                    <button
+                                        type="button"
+                                        onClick={() => setExpenseAmount('')}
+                                        className="chip-btn chip-btn-clear"
+                                    >
+                                        Clear
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="input-group">
+                            <label className="input-label">Expense Category</label>
+                            <input 
+                                type="text" 
+                                required
+                                placeholder="e.g. Stock Purchase, Rent, Transport"
+                                value={expenseCategory}
+                                onChange={(e) => setExpenseCategory(e.target.value)}
+                                className="input-control"
+                            />
+                            {/* Quick Category Suggestions */}
+                            <div className="quick-chips">
+                                {['Stock / Goods', 'Shop Rent', 'Transport / Fare', 'Electricity / Water', 'Staff Wages'].map((cat) => (
+                                    <button
+                                        key={cat}
+                                        type="button"
+                                        onClick={() => setExpenseCategory(cat)}
+                                        className={`chip-btn ${expenseCategory === cat ? 'active' : ''}`}
+                                    >
+                                        {cat}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="input-group">
+                            <label className="input-label">Expense Classification</label>
+                            <select 
+                                value={expenseType}
+                                onChange={(e) => setExpenseType(e.target.value)}
+                                className="input-control"
+                            >
+                                <option value="direct">Direct Expense (Stock / Raw materials - impacts Gross Profit)</option>
+                                <option value="operating">Operating Expense (Rent, Power, Wages - impacts Net Profit)</option>
+                            </select>
+                        </div>
+
+                        <div className="input-group">
+                            <label className="input-label">Description (Optional)</label>
+                            <textarea 
+                                rows={2}
+                                placeholder="Vendor invoice, receipt note, or details"
+                                value={expenseDesc}
+                                onChange={(e) => setExpenseDesc(e.target.value)}
+                                className="input-control"
+                                style={{ resize: 'vertical' }}
+                            />
+                        </div>
+
+                        <div className="filling-card-footer">
+                            <button 
+                                type="button" 
+                                onClick={() => setActiveForm(null)} 
+                                className="btn-outline"
+                            >
+                                Cancel
+                            </button>
+                            <button 
+                                type="submit" 
+                                disabled={actionLoading} 
+                                className="btn-primary" 
+                                style={{ minWidth: '150px' }}
+                            >
+                                {actionLoading ? 'Saving...' : 'Save Expense'}
+                            </button>
+                        </div>
+                    </form>
+                </section>
+            )}
 
             {/* 3. Core Financial Metrics Grid (Strict Blue & White Palette) */}
             <section className="metrics-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: '1.25rem' }}>
@@ -564,213 +865,6 @@ export const BusinessDashboard = () => {
                 )}
             </section>
 
-            {/* MODAL: Record Income */}
-            <Modal 
-                isOpen={incomeModal} 
-                onClose={() => setIncomeModal(false)} 
-                title="Record New Income"
-                footer={
-                    <>
-                        <button type="button" onClick={() => setIncomeModal(false)} className="btn-outline">
-                            Cancel
-                        </button>
-                        <button type="submit" form="income-form" disabled={actionLoading} className="btn-primary" style={{ minWidth: '130px' }}>
-                            {actionLoading ? 'Saving...' : 'Save Income'}
-                        </button>
-                    </>
-                }
-            >
-                <form id="income-form" onSubmit={handleAddIncome} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                    <div className="input-group">
-                        <label className="input-label">Income Amount (TSh)</label>
-                        <input 
-                            type="number" 
-                            step="any" 
-                            min="1"
-                            required
-                            placeholder="e.g. 50000"
-                            value={incomeAmount}
-                            onChange={(e) => setIncomeAmount(e.target.value)}
-                            className="input-control"
-                            style={{ fontSize: '1.1rem', fontWeight: 700 }}
-                        />
-                        {/* Quick Amount Helper Chips */}
-                        <div className="quick-chips">
-                            <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 600 }}>Quick Add:</span>
-                            {[10000, 20000, 50000, 100000].map((val) => (
-                                <button
-                                    key={val}
-                                    type="button"
-                                    onClick={() => {
-                                        const current = parseFloat(incomeAmount) || 0;
-                                        setIncomeAmount(String(current + val));
-                                    }}
-                                    className="chip-btn"
-                                >
-                                    +{val.toLocaleString()}
-                                </button>
-                            ))}
-                            {incomeAmount && (
-                                <button
-                                    type="button"
-                                    onClick={() => setIncomeAmount('')}
-                                    className="chip-btn"
-                                    style={{ color: 'var(--text-muted)' }}
-                                >
-                                    Clear
-                                </button>
-                            )}
-                        </div>
-                    </div>
-
-                    <div className="input-group">
-                        <label className="input-label">Revenue Source</label>
-                        <input 
-                            type="text" 
-                            required
-                            placeholder="e.g. Cash Sale, M-Pesa, POS"
-                            value={incomeSource}
-                            onChange={(e) => setIncomeSource(e.target.value)}
-                            className="input-control"
-                        />
-                        {/* Quick Source Chips */}
-                        <div className="quick-chips">
-                            {['Cash Sale', 'M-Pesa / Tigo Pesa', 'POS Card', 'Bank Transfer'].map((s) => (
-                                <button
-                                    key={s}
-                                    type="button"
-                                    onClick={() => setIncomeSource(s)}
-                                    className={`chip-btn ${incomeSource === s ? 'active' : ''}`}
-                                >
-                                    {s}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-
-                    <div className="input-group">
-                        <label className="input-label">Description (Optional)</label>
-                        <textarea 
-                            rows={2}
-                            placeholder="Receipt number or notes"
-                            value={incomeDesc}
-                            onChange={(e) => setIncomeDesc(e.target.value)}
-                            className="input-control"
-                            style={{ resize: 'vertical' }}
-                        />
-                    </div>
-                </form>
-            </Modal>
-
-            {/* MODAL: Record Expense */}
-            <Modal 
-                isOpen={expenseModal} 
-                onClose={() => setExpenseModal(false)} 
-                title="Record Business Expense"
-                footer={
-                    <>
-                        <button type="button" onClick={() => setExpenseModal(false)} className="btn-outline">
-                            Cancel
-                        </button>
-                        <button type="submit" form="expense-form" disabled={actionLoading} className="btn-primary" style={{ minWidth: '130px' }}>
-                            {actionLoading ? 'Saving...' : 'Save Expense'}
-                        </button>
-                    </>
-                }
-            >
-                <form id="expense-form" onSubmit={handleAddExpense} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                    <div className="input-group">
-                        <label className="input-label">Expense Amount (TSh)</label>
-                        <input 
-                            type="number" 
-                            step="any" 
-                            min="1"
-                            required
-                            placeholder="e.g. 25000"
-                            value={expenseAmount}
-                            onChange={(e) => setExpenseAmount(e.target.value)}
-                            className="input-control"
-                            style={{ fontSize: '1.1rem', fontWeight: 700 }}
-                        />
-                        {/* Quick Expense Amount Chips */}
-                        <div className="quick-chips">
-                            <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 600 }}>Quick Add:</span>
-                            {[5000, 10000, 20000, 50000].map((val) => (
-                                <button
-                                    key={val}
-                                    type="button"
-                                    onClick={() => {
-                                        const current = parseFloat(expenseAmount) || 0;
-                                        setExpenseAmount(String(current + val));
-                                    }}
-                                    className="chip-btn"
-                                >
-                                    +{val.toLocaleString()}
-                                </button>
-                            ))}
-                            {expenseAmount && (
-                                <button
-                                    type="button"
-                                    onClick={() => setExpenseAmount('')}
-                                    className="chip-btn"
-                                    style={{ color: 'var(--text-muted)' }}
-                                >
-                                    Clear
-                                </button>
-                            )}
-                        </div>
-                    </div>
-
-                    <div className="input-group">
-                        <label className="input-label">Expense Category</label>
-                        <input 
-                            type="text" 
-                            required
-                            placeholder="e.g. Stock Purchase, Rent, Transport"
-                            value={expenseCategory}
-                            onChange={(e) => setExpenseCategory(e.target.value)}
-                            className="input-control"
-                        />
-                        {/* Quick Category Suggestions */}
-                        <div className="quick-chips">
-                            {['Stock / Goods', 'Shop Rent', 'Transport / Fare', 'Electricity / Water', 'Staff Wages'].map((cat) => (
-                                <button
-                                    key={cat}
-                                    type="button"
-                                    onClick={() => setExpenseCategory(cat)}
-                                    className={`chip-btn ${expenseCategory === cat ? 'active' : ''}`}
-                                >
-                                    {cat}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-
-                    <div className="input-group">
-                        <label className="input-label">Expense Classification</label>
-                        <select 
-                            value={expenseType}
-                            onChange={(e) => setExpenseType(e.target.value)}
-                            className="input-control"
-                        >
-                            <option value="direct">Direct Expense (Stock / Raw materials - impacts Gross Profit)</option>
-                            <option value="operating">Operating Expense (Rent, Power, Wages - impacts Net Profit)</option>
-                        </select>
-                    </div>
-
-                    <div className="input-group">
-                        <label className="input-label">Description (Optional)</label>
-                        <textarea 
-                            rows={2}
-                            placeholder="Vendor invoice, receipt note, or details"
-                            value={expenseDesc}
-                            onChange={(e) => setExpenseDesc(e.target.value)}
-                            className="input-control"
-                            style={{ resize: 'vertical' }}
-                        />
-                    </div>
-                </form>
-            </Modal>
 
             {/* MODAL: Day Summary (Shown on Day Close) */}
             <Modal isOpen={daySummaryModal} onClose={() => setDaySummaryModal(false)} title="Day Closed — Session Summary">
