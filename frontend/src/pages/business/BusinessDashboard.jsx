@@ -10,19 +10,17 @@ import {
     DollarSign, 
     TrendingUp, 
     ArrowUpRight, 
-    ArrowDownRight, 
-    Clock, 
-    Calendar, 
+    ArrowDownRight,
     AlertCircle, 
     CheckCircle2, 
     Lock, 
     Receipt, 
-    Building2,
     Layers,
     FileSpreadsheet,
     X
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { FinancialPieChart } from '../../components/common/FinancialPieChart';
 
 export const BusinessDashboard = () => {
     const { user, businessName, businessLogo } = useContext(AuthContext);
@@ -54,14 +52,6 @@ export const BusinessDashboard = () => {
 
     // Recent transactions preview
     const [recentTransactions, setRecentTransactions] = useState([]);
-
-    // Live clock
-    const [currentTime, setCurrentTime] = useState(new Date());
-
-    useEffect(() => {
-        const timer = setInterval(() => setCurrentTime(new Date()), 1000);
-        return () => clearInterval(timer);
-    }, []);
 
     const fetchDashboard = useCallback(async () => {
         try {
@@ -184,19 +174,6 @@ export const BusinessDashboard = () => {
     const isSessionClosed = sessionStatus === 'closed';
     const metrics = dashboard?.todayMetrics || {};
 
-    const formattedLiveDate = currentTime.toLocaleDateString('en-US', {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-    });
-    const formattedLiveTime = currentTime.toLocaleTimeString('en-US', {
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-        hour12: true
-    });
-
     if (loading) {
         return (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', gap: '1rem' }}>
@@ -208,51 +185,7 @@ export const BusinessDashboard = () => {
     }
 
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-            {/* 1. Header Banner with Business Name & Real-time Live Clock */}
-            <section className="blue-card-gradient" style={{ padding: '2rem 2.5rem' }}>
-                <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '1.5rem', position: 'relative', zIndex: 2 }}>
-                    <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.5rem' }}>
-                            <span className="badge-white">
-                                <Building2 size={13} /> {businessName}
-                            </span>
-                            <span className="badge-white">
-                                Retail Operations
-                            </span>
-                        </div>
-                        <h1 style={{ fontSize: '2rem', fontWeight: 800, color: '#ffffff', margin: 0 }}>
-                            {businessName}
-                        </h1>
-                        <p style={{ color: 'rgba(255, 255, 255, 0.85)', fontSize: '0.95rem', margin: '0.4rem 0 0', fontWeight: 500 }}>
-                            Track daily gross vs. net profits, sales revenue, and expenses in real-time.
-                        </p>
-                    </div>
-
-                    {/* Live Clock Card */}
-                    <div style={{
-                        backgroundColor: 'rgba(255, 255, 255, 0.15)',
-                        backdropFilter: 'blur(10px)',
-                        border: '1px solid rgba(255, 255, 255, 0.3)',
-                        borderRadius: 'var(--radius-lg)',
-                        padding: '1.25rem 1.75rem',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'flex-end',
-                        gap: '0.35rem'
-                    }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#ffffff', fontSize: '0.85rem', fontWeight: 600 }}>
-                            <Calendar size={16} />
-                            <span>{formattedLiveDate}</span>
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#ffffff', fontSize: '1.75rem', fontWeight: 800, letterSpacing: '0.04em', fontVariantNumeric: 'tabular-nums' }}>
-                            <Clock size={20} />
-                            <span>{formattedLiveTime}</span>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
             {/* Notifications / Alerts */}
             {error && (
                 <div className="animate-fade-in" style={{
@@ -329,7 +262,7 @@ export const BusinessDashboard = () => {
                     </div>
 
                     {/* Action Controls */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+                    <div className="dashboard-actions-group">
                         {!isSessionOpen && !isSessionClosed && (
                             <button 
                                 onClick={handleOpenDay}
@@ -801,7 +734,14 @@ export const BusinessDashboard = () => {
                 </div>
             </section>
 
-            {/* 4. Recent Transactions Preview Section */}
+            {/* 4. Visual Financial Proportions Breakdown (Interactive Pie Chart) */}
+            <FinancialPieChart 
+                todayMetrics={metrics} 
+                lifetimeMetrics={dashboard?.lifetimeMetrics || {}} 
+                title="Financial Proportion Breakdown"
+            />
+
+            {/* 5. Recent Transactions Preview Section */}
             <section className="blue-card" style={{ padding: '1.75rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>

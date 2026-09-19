@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useContext } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { Clock, Calendar, Sun, Moon, Building2, Shield, Menu } from 'lucide-react';
@@ -6,6 +7,7 @@ import { Clock, Calendar, Sun, Moon, Building2, Shield, Menu } from 'lucide-reac
 export const Header = ({ onToggleMobileSidebar }) => {
     const { user, businessName, businessLogo } = useContext(AuthContext);
     const { isDark, toggleTheme } = useTheme();
+    const navigate = useNavigate();
     const [currentTime, setCurrentTime] = useState(new Date());
 
     useEffect(() => {
@@ -18,28 +20,20 @@ export const Header = ({ onToggleMobileSidebar }) => {
     // Formatted date and time
     const dayName = currentTime.toLocaleDateString('en-US', { weekday: 'short' });
     const formattedDate = currentTime.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-    const formattedTime = currentTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
+    const formattedTime = currentTime.toLocaleTimeString('en-US', { 
+        hour: '2-digit', 
+        minute: '2-digit', 
+        second: '2-digit', 
+        hour12: true 
+    });
 
     const isSuperAdmin = user?.role === 'super_admin';
-    const displayName = isSuperAdmin ? 'Super Admin' : businessName;
+    const displayName = isSuperAdmin ? 'Super Admin' : (businessName || 'My Business');
 
     return (
-        <header className="header-content" style={{
-            height: '72px',
-            backgroundColor: 'var(--bg-surface)',
-            borderBottom: '1px solid var(--border-main)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '0 1.75rem',
-            position: 'sticky',
-            top: 0,
-            zIndex: 40,
-            boxShadow: 'var(--blue-card-glow)',
-            transition: 'all var(--transition-normal)'
-        }}>
-            {/* Left: Mobile Trigger & Business Name */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+        <header className="header-content">
+            {/* Left: Mobile Trigger & Business Brand Identity */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', minWidth: 0 }}>
                 {/* Mobile Hamburger Button */}
                 <button 
                     onClick={onToggleMobileSidebar}
@@ -50,20 +44,13 @@ export const Header = ({ onToggleMobileSidebar }) => {
                     <Menu size={20} style={{ color: 'var(--blue-600)' }} />
                 </button>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                    <div style={{
-                        width: '40px',
-                        height: '40px',
-                        borderRadius: 'var(--radius-md)',
-                        background: 'var(--blue-gradient)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: '#ffffff',
-                        boxShadow: '0 4px 12px rgba(37, 99, 235, 0.3)',
-                        overflow: 'hidden',
-                        flexShrink: 0
-                    }}>
+                {/* Brand Identity / Storefront Info */}
+                <div 
+                    onClick={() => navigate(isSuperAdmin ? '/admin/dashboard' : '/business/dashboard')}
+                    style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer', minWidth: 0 }}
+                    title="Go to Dashboard"
+                >
+                    <div className="header-brand-logo">
                         {businessLogo ? (
                             <img 
                                 src={`http://localhost:5000${businessLogo}`} 
@@ -76,96 +63,75 @@ export const Header = ({ onToggleMobileSidebar }) => {
                             <Building2 size={20} />
                         )}
                     </div>
-                    <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            <h2 style={{
-                                fontSize: '1.05rem',
-                                fontWeight: 800,
-                                color: 'var(--text-primary)',
-                                margin: 0,
-                                letterSpacing: '-0.02em',
-                                maxWidth: '180px',
-                                whiteSpace: 'nowrap',
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis'
-                            }}>
+                    <div style={{ minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'nowrap' }}>
+                            <h2 className="header-store-name">
                                 {displayName}
                             </h2>
-                            <span className="badge-blue" style={{ fontSize: '0.65rem', padding: '0.15rem 0.5rem' }}>
-                                {isSuperAdmin ? 'Admin' : 'Active'}
-                            </span>
+                            {isSuperAdmin ? (
+                                <span className="header-badge-admin">
+                                    <Shield size={10} /> Admin
+                                </span>
+                            ) : (
+                                <span className="header-badge-store">
+                                    <span className="pulse-indicator"></span> Active
+                                </span>
+                            )}
                         </div>
                         <p className="header-user-text" style={{
                             fontSize: '0.725rem',
                             color: 'var(--text-muted)',
-                            margin: 0,
-                            fontWeight: 500
+                            margin: '0.1rem 0 0',
+                            fontWeight: 500,
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis'
                         }}>
-                            Logged in as <strong style={{ color: 'var(--blue-600)' }}>{user?.username || 'User'}</strong>
+                            Logged in as <strong style={{ color: 'var(--blue-600)' }}>@{user?.username || 'user'}</strong>
                         </p>
                     </div>
                 </div>
             </div>
 
-            {/* Right: Real-time Live Clock, Theme Toggle & User Avatar */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            {/* Right: Real-time Live Clock, Theme Toggle & User Avatar Profile */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexShrink: 0 }}>
                 {/* Live Clock & Date Widget */}
-                <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.6rem',
-                    backgroundColor: 'var(--bg-subtle)',
-                    border: '1px solid var(--border-subtle)',
-                    padding: '0.4rem 0.8rem',
-                    borderRadius: 'var(--radius-full)',
-                }}>
-                    <div className="header-clock-date" style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: 'var(--text-secondary)', fontSize: '0.775rem', fontWeight: 600 }}>
+                <div className="header-clock-pill">
+                    <div className="header-clock-date">
                         <Calendar size={13} style={{ color: 'var(--blue-500)' }} />
                         <span>{dayName}, {formattedDate}</span>
-                        <span style={{ width: '3px', height: '3px', borderRadius: '50%', backgroundColor: 'var(--blue-400)', margin: '0 0.2rem' }}></span>
+                        <span className="clock-divider"></span>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: 'var(--blue-600)', fontSize: '0.8rem', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
+                    <div className="header-clock-time">
                         <Clock size={13} style={{ color: 'var(--blue-500)' }} />
                         <span>{formattedTime}</span>
                     </div>
                 </div>
 
-                {/* Theme Toggle Button */}
+                {/* Interactive Theme Toggle Switch */}
                 <button 
                     onClick={toggleTheme}
-                    className="btn-icon"
-                    title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
-                    style={{
-                        position: 'relative',
-                        width: '38px',
-                        height: '38px',
-                        borderRadius: 'var(--radius-full)',
-                        backgroundColor: 'var(--bg-subtle)',
-                        flexShrink: 0
-                    }}
+                    className={`header-theme-toggle ${isDark ? 'dark-active' : 'light-active'}`}
+                    title={isDark ? "Dark Mode Active — Click to switch to Light Mode" : "Light Mode Active — Click to switch to Dark Mode"}
+                    aria-label="Toggle dark and light mode"
                 >
                     {isDark ? (
-                        <Sun size={17} style={{ color: '#ffffff' }} />
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fbbf24' }}>
+                            <Sun size={18} style={{ filter: 'drop-shadow(0 0 6px rgba(251, 191, 36, 0.6))' }} />
+                        </div>
                     ) : (
-                        <Moon size={17} style={{ color: 'var(--blue-700)' }} />
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#4f46e5' }}>
+                            <Moon size={18} style={{ filter: 'drop-shadow(0 0 6px rgba(79, 70, 229, 0.4))' }} />
+                        </div>
                     )}
                 </button>
 
-                {/* User Avatar Circle */}
-                <div style={{
-                    width: '36px',
-                    height: '36px',
-                    borderRadius: 'var(--radius-full)',
-                    background: 'var(--blue-gradient-subtle)',
-                    border: '2px solid var(--blue-400)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: 'var(--blue-600)',
-                    fontWeight: 700,
-                    fontSize: '0.85rem',
-                    flexShrink: 0
-                }}>
+                {/* User Avatar & Settings Link */}
+                <div 
+                    onClick={() => navigate(isSuperAdmin ? '/admin/dashboard' : '/business/settings')}
+                    className="header-user-avatar"
+                    title={`Account & Settings (@${user?.username || 'user'})`}
+                >
                     {user?.username?.charAt(0)?.toUpperCase() || 'U'}
                 </div>
             </div>

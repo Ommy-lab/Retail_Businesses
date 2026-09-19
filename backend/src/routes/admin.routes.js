@@ -1,5 +1,5 @@
 import express from 'express';
-import { createBusiness, getAllBusinesses, getAdminDashboard, getBusinessReportsAsAdmin, archiveBusiness } from '../controllers/admin.controller.js';
+import { createBusiness, getAllBusinesses, getAdminDashboard, getBusinessReportsAsAdmin, archiveBusiness, unarchiveBusiness } from '../controllers/admin.controller.js';
 import { verifyToken, requireRole } from '../middlewares/auth.middleware.js';
 
 
@@ -17,5 +17,6 @@ router.get('/businesses/:businessId/reports', getBusinessReportsAsAdmin);
 
 // ... inside admin routes
 router.patch('/businesses/:businessId/archive', archiveBusiness);
+router.patch('/businesses/:businessId/unarchive', unarchiveBusiness);
 
 export default router;

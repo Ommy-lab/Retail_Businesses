@@ -211,6 +211,17 @@ export const getBusinessDashboard = async (req, res) => {
         const grossProfit = totalIncome - totalDirectExp;
         const netProfit = grossProfit - totalOperatingExp;
 
+        // Lifetime metrics across all sessions from registration date to now
+        const lifetimeIncomeRes = await pool.query('SELECT COALESCE(SUM(amount), 0) AS total FROM incomes WHERE business_id = $1', [business_id]);
+        const lifetimeDirectRes = await pool.query('SELECT COALESCE(SUM(amount), 0) AS total FROM expenses WHERE business_id = $1 AND expense_type = $2', [business_id, 'direct']);
+        const lifetimeOperatingRes = await pool.query('SELECT COALESCE(SUM(amount), 0) AS total FROM expenses WHERE business_id = $1 AND expense_type = $2', [business_id, 'operating']);
+
+        const lifetimeIncome = parseFloat(lifetimeIncomeRes.rows[0].total || 0);
+        const lifetimeDirectExp = parseFloat(lifetimeDirectRes.rows[0].total || 0);
+        const lifetimeOperatingExp = parseFloat(lifetimeOperatingRes.rows[0].total || 0);
+        const lifetimeGrossProfit = lifetimeIncome - lifetimeDirectExp;
+        const lifetimeNetProfit = lifetimeGrossProfit - lifetimeOperatingExp;
+
         res.json({
             sessionStatus: currentSession ? currentSession.status : 'not_opened',
             todayMetrics: {
@@ -219,6 +230,13 @@ export const getBusinessDashboard = async (req, res) => {
                 totalOperatingExp,
                 grossProfit,
                 netProfit
+            },
+            lifetimeMetrics: {
+                totalIncome: lifetimeIncome,
+                totalDirectExp: lifetimeDirectExp,
+                totalOperatingExp: lifetimeOperatingExp,
+                grossProfit: lifetimeGrossProfit,
+                netProfit: lifetimeNetProfit
             }
         });
     } catch (err) {
@@ -249,11 +267,11 @@ export const getSettings = async (req, res) => {
     }
 };
 
-// Update Business Settings (Name, Profile Photo, Password)
+// Update Business Settings (Name, Profile Photo, Username, Password)
 export const updateSettings = async (req, res) => {
     const business_id = req.user.business_id;
     const user_id = req.user.id;
-    const { name, currentPassword, newPassword } = req.body;
+    const { name, username, currentPassword, newPassword } = req.body;
     const logo_url = req.file ? `/uploads/${req.file.filename}` : undefined;
 
     const client = await pool.connect();
@@ -281,7 +299,31 @@ export const updateSettings = async (req, res) => {
             await client.query(query, values);
         }
 
-        // 2. Handle Password Change if requested
+        // 2. Update Username if provided and different
+        let updatedUsername = undefined;
+        if (username !== undefined && username !== '') {
+            const cleanUsername = String(username).trim();
+            if (cleanUsername.length < 3) {
+                await client.query('ROLLBACK');
+                return res.status(400).json({ error: "Username must be at least 3 characters." });
+            }
+
+            // Check if username is already taken by another user
+            const existingUserRes = await client.query(
+                'SELECT id FROM users WHERE username = $1 AND id != $2',
+                [cleanUsername, user_id]
+            );
+
+            if (existingUserRes.rows.length > 0) {
+                await client.query('ROLLBACK');
+                return res.status(400).json({ error: "Username is already taken by another account." });
+            }
+
+            await client.query('UPDATE users SET username = $1 WHERE id = $2', [cleanUsername, user_id]);
+            updatedUsername = cleanUsername;
+        }
+
+        // 3. Handle Password Change if requested
         if (newPassword) {
             if (!currentPassword) {
                 await client.query('ROLLBACK');
@@ -304,7 +346,10 @@ export const updateSettings = async (req, res) => {
         }
 
         await client.query('COMMIT');
-        res.json({ message: "Settings updated successfully." });
+        res.json({ 
+            message: "Settings updated successfully.",
+            username: updatedUsername
+        });
     } catch (err) {
         await client.query('ROLLBACK');
         console.error("Update settings error:", err);

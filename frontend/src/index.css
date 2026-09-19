@@ -951,3 +951,282 @@ html.dark .filling-card-icon {
         font-size: 0.95rem;
     }
 }
+
+/* ==========================================================================
+   ENHANCED TOP HEADER BAR STYLING
+   ========================================================================== */
+.header-content {
+    height: 70px;
+    background-color: var(--bg-surface);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border-main);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 1.75rem;
+    position: sticky;
+    top: 0;
+    z-index: 40;
+    box-shadow: 0 4px 20px -2px rgba(10, 25, 47, 0.05);
+    transition: background-color var(--transition-normal), border-color var(--transition-normal);
+}
+
+.header-brand-logo {
+    width: 42px;
+    height: 42px;
+    border-radius: var(--radius-md);
+    background: var(--blue-gradient);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+    overflow: hidden;
+    flex-shrink: 0;
+    transition: transform var(--transition-fast);
+}
+
+.header-brand-logo:hover {
+    transform: scale(1.05);
+}
+
+.header-store-name {
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    margin: 0;
+    letter-spacing: -0.02em;
+    max-width: clamp(120px, 30vw, 240px);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.25;
+}
+
+.header-badge-store {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.15rem 0.55rem;
+    border-radius: var(--radius-full);
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    background-color: rgba(16, 185, 129, 0.1);
+    color: #10b981;
+    border: 1px solid rgba(16, 185, 129, 0.25);
+}
+
+.header-badge-admin {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.15rem 0.55rem;
+    border-radius: var(--radius-full);
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    background-color: rgba(99, 102, 241, 0.1);
+    color: #6366f1;
+    border: 1px solid rgba(99, 102, 241, 0.25);
+}
+
+.pulse-indicator {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: #10b981;
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.6);
+    animation: pulseGreen 2s infinite;
+}
+
+@keyframes pulseGreen {
+    0% {
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+    }
+    70% {
+        box-shadow: 0 0 0 5px rgba(16, 185, 129, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+    }
+}
+
+.header-clock-pill {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    background-color: var(--bg-subtle);
+    border: 1px solid var(--border-main);
+    padding: 0.45rem 0.9rem;
+    border-radius: var(--radius-full);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+    transition: all var(--transition-fast);
+}
+
+.header-clock-pill:hover {
+    border-color: var(--blue-300);
+}
+
+.header-clock-date {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    color: var(--text-secondary);
+    font-size: 0.775rem;
+    font-weight: 600;
+}
+
+.clock-divider {
+    width: 3px;
+    height: 3px;
+    border-radius: 50%;
+    background-color: var(--blue-400);
+    margin: 0 0.2rem;
+}
+
+.header-clock-time {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    color: var(--blue-600);
+    font-size: 0.825rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+html.dark .header-clock-time {
+    color: var(--blue-400);
+}
+
+.header-theme-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius-full);
+    background-color: var(--bg-subtle);
+    border: 1px solid var(--border-main);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    flex-shrink: 0;
+}
+
+.header-theme-toggle.dark-active {
+    background-color: rgba(251, 191, 36, 0.12);
+    border-color: rgba(251, 191, 36, 0.4);
+}
+
+.header-theme-toggle.dark-active:hover {
+    background-color: rgba(251, 191, 36, 0.2);
+    box-shadow: 0 0 14px rgba(251, 191, 36, 0.3);
+    transform: translateY(-1px) scale(1.06);
+}
+
+.header-theme-toggle.light-active {
+    background-color: rgba(79, 70, 229, 0.08);
+    border-color: rgba(79, 70, 229, 0.25);
+}
+
+.header-theme-toggle.light-active:hover {
+    background-color: rgba(79, 70, 229, 0.14);
+    box-shadow: 0 0 14px rgba(79, 70, 229, 0.25);
+    transform: translateY(-1px) scale(1.06);
+}
+
+.header-theme-toggle:active {
+    transform: scale(0.93);
+}
+
+.header-user-avatar {
+    width: 38px;
+    height: 38px;
+    border-radius: var(--radius-full);
+    background: var(--blue-gradient-subtle);
+    border: 2px solid var(--blue-400);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--blue-600);
+    font-weight: 700;
+    font-size: 0.85rem;
+    flex-shrink: 0;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.header-user-avatar:hover {
+    border-color: var(--blue-600);
+    transform: scale(1.06);
+    box-shadow: 0 0 12px var(--border-glow);
+}
+
+.dashboard-actions-group {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+@media (max-width: 860px) {
+    .header-clock-date {
+        display: none !important;
+    }
+}
+
+@media (max-width: 640px) {
+    .header-content {
+        padding: 0 0.85rem !important;
+        height: 64px;
+    }
+
+    .header-brand-logo {
+        width: 36px;
+        height: 36px;
+    }
+
+    .header-store-name {
+        font-size: 1rem;
+        max-width: 130px;
+    }
+
+    .header-user-text {
+        display: none !important;
+    }
+
+    .header-clock-pill {
+        padding: 0.35rem 0.65rem;
+        font-size: 0.75rem;
+    }
+
+    .header-clock-time span {
+        font-size: 0.75rem;
+    }
+
+    .header-theme-toggle {
+        width: 36px;
+        height: 36px;
+    }
+
+    .header-user-avatar {
+        width: 34px;
+        height: 34px;
+    }
+
+    .dashboard-actions-group {
+        width: 100%;
+        flex-direction: column;
+        gap: 0.65rem;
+    }
+
+    .dashboard-actions-group button {
+        width: 100% !important;
+        justify-content: center !important;
+        min-height: 46px;
+        font-size: 0.925rem;
+    }
+}

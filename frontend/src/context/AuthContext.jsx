@@ -4,8 +4,16 @@ import API from '../services/api';
 export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-    const [user, setUser] = useState(null);
-    const [token, setToken] = useState(localStorage.getItem('token'));
+    const [token, setToken] = useState(() => localStorage.getItem('token'));
+    const [user, setUser] = useState(() => {
+        try {
+            const storedUser = localStorage.getItem('user');
+            return storedUser ? JSON.parse(storedUser) : null;
+        } catch (e) {
+            console.error("Failed to parse stored user session:", e);
+            return null;
+        }
+    });
     const [businessName, setBusinessName] = useState(() => localStorage.getItem('rb_biz_name') || '');
     const [businessLogo, setBusinessLogo] = useState(() => localStorage.getItem('rb_biz_logo') || '');
 
@@ -27,15 +35,10 @@ export const AuthProvider = ({ children }) => {
     }, []);
 
     useEffect(() => {
-        const storedUser = localStorage.getItem('user');
-        if (storedUser && token) {
-            const parsedUser = JSON.parse(storedUser);
-            setUser(parsedUser);
-            if (parsedUser.role === 'business_user') {
-                fetchBusinessProfile();
-            }
+        if (token && user?.role === 'business_user') {
+            fetchBusinessProfile();
         }
-    }, [token, fetchBusinessProfile]);
+    }, [token, user?.role, fetchBusinessProfile]);
 
     const login = (userData, jwtToken) => {
         setUser(userData);
@@ -47,7 +50,7 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
-    const updateBusinessProfile = (name, logoUrl) => {
+    const updateBusinessProfile = (name, logoUrl, newUsername) => {
         if (name) {
             setBusinessName(name);
             localStorage.setItem('rb_biz_name', name);
@@ -55,6 +58,15 @@ export const AuthProvider = ({ children }) => {
         if (logoUrl) {
             setBusinessLogo(logoUrl);
             localStorage.setItem('rb_biz_logo', logoUrl);
+        }
+        if (newUsername) {
+            setUser((prev) => {
+                const updated = prev ? { ...prev, username: newUsername } : prev;
+                if (updated) {
+                    localStorage.setItem('user', JSON.stringify(updated));
+                }
+                return updated;
+            });
         }
     };
 

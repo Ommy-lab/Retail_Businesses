@@ -11,7 +11,8 @@ import {
     Shield, 
     Sparkles, 
     Eye, 
-    EyeOff 
+    EyeOff,
+    User
 } from 'lucide-react';
 
 export const Settings = () => {
@@ -19,6 +20,7 @@ export const Settings = () => {
 
     const [activeTab, setActiveTab] = useState('profile'); // 'profile', 'security'
     const [name, setName] = useState('');
+    const [username, setUsername] = useState('');
     const [currentPassword, setCurrentPassword] = useState('');
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
@@ -34,6 +36,7 @@ export const Settings = () => {
     useEffect(() => {
         API.get('/business/settings').then(res => {
             setName(res.data.name || '');
+            setUsername(res.data.username || '');
             if (res.data.logo_url) {
                 setLogoPreview(`http://localhost:5000${res.data.logo_url}`);
             }
@@ -65,6 +68,7 @@ export const Settings = () => {
         setLoading(true);
         const formData = new FormData();
         if (name) formData.append('name', name);
+        if (username) formData.append('username', username);
         if (currentPassword) formData.append('currentPassword', currentPassword);
         if (newPassword) formData.append('newPassword', newPassword);
         if (logo) formData.append('logo', logo);
@@ -79,7 +83,7 @@ export const Settings = () => {
             setConfirmPassword('');
 
             // Sync with global context immediately
-            updateBusinessProfile(name, logo ? logoPreview : undefined);
+            updateBusinessProfile(name, logo ? logoPreview : undefined, res.data.username || username);
             setTimeout(() => setSuccessMessage(''), 4000);
         } catch (err) {
             setError(err.response?.data?.error || "Failed to update business settings.");
@@ -222,6 +226,24 @@ export const Settings = () => {
                             </span>
                         </div>
 
+                        {/* Business Username */}
+                        <div className="input-group">
+                            <label className="input-label" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                <User size={15} style={{ color: 'var(--blue-500)' }} /> Store Login Username
+                            </label>
+                            <input 
+                                type="text"
+                                required
+                                value={username}
+                                onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/\s+/g, ''))}
+                                placeholder="e.g. apex_store"
+                                className="input-control"
+                            />
+                            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                                The unique username used to authenticate and log into this business storefront.
+                            </span>
+                        </div>
+
                         {/* Live Branding Preview Card */}
                         <div style={{
                             padding: '1.25rem',
@@ -232,26 +254,32 @@ export const Settings = () => {
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
                                 <Sparkles size={16} style={{ color: 'var(--blue-500)' }} />
                                 <span style={{ fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-muted)' }}>
-                                    Live Branding Preview
+                                    Live Branding & Identity Preview
                                 </span>
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                                 <div style={{
-                                    width: '38px',
-                                    height: '38px',
+                                    width: '42px',
+                                    height: '42px',
                                     borderRadius: 'var(--radius-md)',
                                     background: 'var(--blue-gradient)',
                                     color: '#ffffff',
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'center',
-                                    overflow: 'hidden'
+                                    overflow: 'hidden',
+                                    flexShrink: 0
                                 }}>
-                                    {logoPreview ? <img src={logoPreview} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Building2 size={18} />}
+                                    {logoPreview ? <img src={logoPreview} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Building2 size={20} />}
                                 </div>
-                                <span style={{ fontWeight: 800, fontSize: '1.1rem', color: 'var(--text-primary)' }}>
-                                    {name || 'Your Business Name'}
-                                </span>
+                                <div>
+                                    <span style={{ fontWeight: 800, fontSize: '1.1rem', color: 'var(--text-primary)', display: 'block', lineHeight: 1.2 }}>
+                                        {name || 'Your Business Name'}
+                                    </span>
+                                    <span style={{ fontSize: '0.8rem', color: 'var(--blue-600)', fontWeight: 600 }}>
+                                        @{username || 'store_username'}
+                                    </span>
+                                </div>
                             </div>
                         </div>
                     </div>

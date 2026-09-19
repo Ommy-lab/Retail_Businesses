@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import API from '../../services/api';
-import { Modal } from '../../components/common/Modal';
-import { formatDate } from '../../utils/formatters';
+import { formatDate, formatCurrency } from '../../utils/formatters';
 import { 
     Building2, 
     UserPlus, 
     Shield, 
     Archive, 
+    ArchiveRestore,
     Search, 
     CheckCircle2, 
     AlertCircle, 
@@ -15,7 +15,10 @@ import {
     Layers, 
     Users,
     ExternalLink,
-    X
+    X,
+    TrendingUp,
+    TrendingDown,
+    Wallet
 } from 'lucide-react';
 
 export const AdminDashboard = () => {
@@ -44,10 +47,12 @@ export const AdminDashboard = () => {
         });
     };
 
-    // Modal: Tenant Reports inspection
-    const [reportsModal, setReportsModal] = useState(false);
+    // Flexible Inline Tenant Sessions Section
+    const [showSessions, setShowSessions] = useState(false);
+    const [selectedBusinessId, setSelectedBusinessId] = useState(null);
     const [selectedTenantReport, setSelectedTenantReport] = useState(null);
     const [reportsLoading, setReportsLoading] = useState(false);
+    const sessionsSectionRef = useRef(null);
 
     // Notifications
     const [statusMessage, setStatusMessage] = useState({ type: '', text: '' });
@@ -107,27 +112,61 @@ export const AdminDashboard = () => {
         }
     };
 
-    // View Tenant Financial / Session History
+    // Handle Unarchive / Restore Business
+    const handleUnarchive = async (businessId, bizName) => {
+        if (!window.confirm(`Are you sure you want to unarchive "${bizName}"? Tenant login will be re-enabled.`)) {
+            return;
+        }
+        try {
+            await API.patch(`/admin/businesses/${businessId}/unarchive`);
+            setStatusMessage({ type: 'success', text: `Business "${bizName}" has been restored successfully.` });
+            setTimeout(() => setStatusMessage({ type: '', text: '' }), 4000);
+            await fetchAdminDashboard();
+        } catch (err) {
+            alert(err.response?.data?.error || 'Failed to unarchive business.');
+        }
+    };
+
+    // View Tenant Financial / Session History (Inline Toggle)
     const handleViewReports = async (businessId) => {
+        if (showSessions && selectedBusinessId === businessId) {
+            setShowSessions(false);
+            setSelectedBusinessId(null);
+            setSelectedTenantReport(null);
+            return;
+        }
+
+        setSelectedBusinessId(businessId);
+        setShowSessions(true);
         setReportsLoading(true);
-        setReportsModal(true);
+
+        setTimeout(() => {
+            sessionsSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }, 60);
+
         try {
             const res = await API.get(`/admin/businesses/${businessId}/reports`);
             setSelectedTenantReport(res.data);
+            setTimeout(() => {
+                sessionsSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }, 60);
         } catch (err) {
             alert(err.response?.data?.error || 'Failed to load business session records.');
-            setReportsModal(false);
+            setShowSessions(false);
+            setSelectedBusinessId(null);
         } finally {
             setReportsLoading(false);
         }
     };
 
     const businesses = dashboard?.businesses || [];
+    const isBizArchived = (b) => Boolean(b.is_archived);
 
     // Filter by Tab and Search
     const filteredBusinesses = businesses.filter(b => {
-        if (tabFilter === 'active' && b.is_archived) return false;
-        if (tabFilter === 'archived' && !b.is_archived) return false;
+        const isArchived = isBizArchived(b);
+        if (tabFilter === 'active' && isArchived) return false;
+        if (tabFilter === 'archived' && !isArchived) return false;
 
         const query = search.toLowerCase();
         const nameMatch = (b.name || '').toLowerCase().includes(query);
@@ -136,7 +175,7 @@ export const AdminDashboard = () => {
     });
 
     const totalBusinesses = dashboard?.totalBusinesses || businesses.length;
-    const archivedCount = businesses.filter(b => b.is_archived).length;
+    const archivedCount = businesses.filter(b => isBizArchived(b)).length;
     const activeCount = totalBusinesses - archivedCount;
     const totalSessions = businesses.reduce((acc, b) => acc + parseInt(b.total_sessions || 0), 0);
 
@@ -405,6 +444,198 @@ export const AdminDashboard = () => {
                 </div>
             </div>
 
+            {/* Inline Flexible Tenant Session History Section */}
+            {showSessions && (
+                <section ref={sessionsSectionRef} className="filling-card-section animate-fade-in" style={{ marginBottom: '1.75rem' }}>
+                    <div className="filling-card-header">
+                        <div className="filling-card-title-group">
+                            <div className="filling-card-icon" style={{ backgroundColor: 'var(--blue-100)', color: 'var(--blue-700)' }}>
+                                <Calendar size={20} />
+                            </div>
+                            <div>
+                                <h3 style={{ fontSize: '1.2rem', fontWeight: 800, margin: 0, color: 'var(--text-primary)' }}>
+                                    Tenant Session History {selectedTenantReport?.business?.name ? `— ${selectedTenantReport.business.name}` : ''}
+                                </h3>
+                                <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: '0.2rem 0 0' }}>
+                                    {selectedTenantReport?.business?.created_at 
+                                        ? `Account registered on ${formatDate(selectedTenantReport.business.created_at)}` 
+                                        : 'Auditing daily sessions for tenant'}
+                                </p>
+                            </div>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                            <span className="badge-blue">
+                                {reportsLoading ? 'Loading...' : `${selectedTenantReport?.sessions?.length || 0} Sessions`}
+                            </span>
+                            <button 
+                                type="button"
+                                onClick={() => {
+                                    setShowSessions(false);
+                                    setSelectedBusinessId(null);
+                                }}
+                                className="btn-icon"
+                                aria-label="Close session log"
+                                style={{ padding: '0.45rem', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-full)' }}
+                            >
+                                <X size={18} />
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="filling-card-body" style={{ padding: '1.25rem 1.75rem' }}>
+                        {reportsLoading ? (
+                            <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+                                <p style={{ margin: 0, fontWeight: 600 }}>Fetching tenant session & financial records...</p>
+                            </div>
+                        ) : selectedTenantReport ? (
+                            <div>
+                                {/* Lifetime Financial Overview (From Registration Date to Current Date) */}
+                                {selectedTenantReport.totals && (
+                                    <div style={{
+                                        display: 'grid',
+                                        gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))',
+                                        gap: '1rem',
+                                        marginBottom: '1.5rem'
+                                    }}>
+                                        <div className="blue-card" style={{ padding: '1rem 1.25rem', backgroundColor: 'var(--bg-subtle)', boxShadow: 'none' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                                <span style={{ fontSize: '0.725rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-muted)' }}>
+                                                    Total Incomes (Lifetime)
+                                                </span>
+                                                <div style={{ padding: '0.35rem', borderRadius: 'var(--radius-sm)', backgroundColor: 'rgba(16, 185, 129, 0.12)', color: '#059669' }}>
+                                                    <TrendingUp size={16} />
+                                                </div>
+                                            </div>
+                                            <div style={{ fontSize: '1.35rem', fontWeight: 800, color: '#059669', marginTop: '0.4rem' }}>
+                                                {formatCurrency(selectedTenantReport.totals.total_income || 0)}
+                                            </div>
+                                            <div style={{ fontSize: '0.725rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+                                                {selectedTenantReport.totals.income_count || 0} income entries recorded
+                                            </div>
+                                        </div>
+
+                                        <div className="blue-card" style={{ padding: '1rem 1.25rem', backgroundColor: 'var(--bg-subtle)', boxShadow: 'none' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                                <span style={{ fontSize: '0.725rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-muted)' }}>
+                                                    Total Expenses (Lifetime)
+                                                </span>
+                                                <div style={{ padding: '0.35rem', borderRadius: 'var(--radius-sm)', backgroundColor: 'rgba(239, 68, 68, 0.12)', color: '#dc2626' }}>
+                                                    <TrendingDown size={16} />
+                                                </div>
+                                            </div>
+                                            <div style={{ fontSize: '1.35rem', fontWeight: 800, color: '#dc2626', marginTop: '0.4rem' }}>
+                                                {formatCurrency(selectedTenantReport.totals.total_expenses || 0)}
+                                            </div>
+                                            <div style={{ fontSize: '0.725rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+                                                Direct: {formatCurrency(selectedTenantReport.totals.direct_expenses || 0)} | Op: {formatCurrency(selectedTenantReport.totals.operating_expenses || 0)}
+                                            </div>
+                                        </div>
+
+                                        <div className="blue-card" style={{ padding: '1rem 1.25rem', backgroundColor: 'var(--bg-subtle)', boxShadow: 'none' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                                <span style={{ fontSize: '0.725rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-muted)' }}>
+                                                    Net Profit / Balance
+                                                </span>
+                                                <div style={{ padding: '0.35rem', borderRadius: 'var(--radius-sm)', backgroundColor: 'var(--blue-100)', color: 'var(--blue-700)' }}>
+                                                    <Wallet size={16} />
+                                                </div>
+                                            </div>
+                                            <div style={{
+                                                fontSize: '1.35rem',
+                                                fontWeight: 800,
+                                                color: (selectedTenantReport.totals.net_profit || 0) >= 0 ? 'var(--blue-700)' : '#dc2626',
+                                                marginTop: '0.4rem'
+                                            }}>
+                                                {formatCurrency(selectedTenantReport.totals.net_profit || 0)}
+                                            </div>
+                                            <div style={{ fontSize: '0.725rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+                                                Overall net profit from all sessions
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                                    <h4 style={{ fontSize: '0.9rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-muted)', margin: 0 }}>
+                                        Daily Sessions Log ({selectedTenantReport.sessions?.length || 0})
+                                    </h4>
+                                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                                        Registered: {formatDate(selectedTenantReport.business?.created_at)}
+                                    </span>
+                                </div>
+
+                                {(!selectedTenantReport.sessions || selectedTenantReport.sessions.length === 0) ? (
+                                    <div style={{ padding: '2.5rem 1rem', textAlign: 'center', backgroundColor: 'var(--bg-subtle)', borderRadius: 'var(--radius-md)' }}>
+                                        <p style={{ color: 'var(--text-muted)', margin: 0, fontSize: '0.9rem' }}>
+                                            No daily sessions have been recorded by this business yet.
+                                        </p>
+                                    </div>
+                                ) : (
+                                    <div className="table-container" style={{ border: '1px solid var(--border-subtle)', maxHeight: '420px', overflowY: 'auto' }}>
+                                        <table className="custom-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>Session Date</th>
+                                                    <th>Status</th>
+                                                    <th>Day Income</th>
+                                                    <th>Day Expenses</th>
+                                                    <th>Day Net</th>
+                                                    <th>Opened At</th>
+                                                    <th>Closed At</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {selectedTenantReport.sessions.map((sess) => (
+                                                    <tr key={sess.id}>
+                                                        <td style={{ fontWeight: 700 }}>{sess.session_date}</td>
+                                                        <td>
+                                                            <span className={sess.status === 'open' ? "badge-blue" : "badge-outline"}>
+                                                                {sess.status}
+                                                            </span>
+                                                        </td>
+                                                        <td style={{ fontWeight: 600, color: '#059669' }}>
+                                                            {formatCurrency(sess.session_income || 0)}
+                                                        </td>
+                                                        <td style={{ fontWeight: 600, color: '#dc2626' }}>
+                                                            {formatCurrency(sess.session_expenses || 0)}
+                                                        </td>
+                                                        <td style={{ 
+                                                            fontWeight: 700, 
+                                                            color: parseFloat(sess.session_net || 0) >= 0 ? 'var(--blue-600)' : '#dc2626' 
+                                                        }}>
+                                                            {formatCurrency(sess.session_net || 0)}
+                                                        </td>
+                                                        <td style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                                                            {sess.opened_at ? new Date(sess.opened_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}
+                                                        </td>
+                                                        <td style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                                                            {sess.closed_at ? new Date(sess.closed_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Active / In Progress'}
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                )}
+                            </div>
+                        ) : null}
+                    </div>
+
+                    <div className="filling-card-footer">
+                        <button 
+                            type="button" 
+                            onClick={() => {
+                                setShowSessions(false);
+                                setSelectedBusinessId(null);
+                            }} 
+                            className="btn-outline"
+                        >
+                            Close Session Log
+                        </button>
+                    </div>
+                </section>
+            )}
+
             {/* Tenants Table */}
             <div className="blue-card" style={{ padding: '0.5rem', overflow: 'hidden' }}>
                 <div className="table-container" style={{ border: 'none', boxShadow: 'none' }}>
@@ -438,7 +669,7 @@ export const AdminDashboard = () => {
                                 </tr>
                             ) : (
                                 filteredBusinesses.map((biz) => {
-                                    const isArchived = biz.is_archived;
+                                    const isArchived = isBizArchived(biz);
                                     return (
                                         <tr key={biz.id}>
                                             <td>
@@ -484,17 +715,40 @@ export const AdminDashboard = () => {
                                                 </span>
                                             </td>
                                             <td style={{ textAlign: 'right' }}>
-                                                <div style={{ display: 'inline-flex', gap: '0.5rem' }}>
+                                                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
                                                     <button 
+                                                        type="button"
                                                         onClick={() => handleViewReports(biz.id)}
-                                                        className="btn-secondary"
-                                                        style={{ padding: '0.4rem 0.8rem', fontSize: '0.775rem' }}
+                                                        className={showSessions && selectedBusinessId === biz.id ? "btn-primary" : "btn-secondary"}
+                                                        style={{ 
+                                                            padding: '0.4rem 0.8rem', 
+                                                            fontSize: '0.775rem',
+                                                            outline: showSessions && selectedBusinessId === biz.id ? '2px solid var(--blue-400)' : 'none'
+                                                        }}
                                                         title="Inspect session history"
                                                     >
-                                                        <FileText size={14} /> Sessions
+                                                        <FileText size={14} /> {showSessions && selectedBusinessId === biz.id ? 'Close Log' : 'Sessions'}
                                                     </button>
-                                                    {!isArchived && (
+                                                    {isArchived ? (
                                                         <button 
+                                                            type="button"
+                                                            onClick={() => handleUnarchive(biz.id, biz.name)}
+                                                            className="btn-secondary"
+                                                            style={{ 
+                                                                padding: '0.4rem 0.75rem', 
+                                                                fontSize: '0.775rem', 
+                                                                color: 'var(--blue-700)', 
+                                                                display: 'inline-flex', 
+                                                                alignItems: 'center', 
+                                                                gap: '0.35rem' 
+                                                            }}
+                                                            title="Unarchive & restore tenant account"
+                                                        >
+                                                            <ArchiveRestore size={15} /> Unarchive
+                                                        </button>
+                                                    ) : (
+                                                        <button 
+                                                            type="button"
                                                             onClick={() => handleArchive(biz.id, biz.name)}
                                                             className="btn-icon"
                                                             style={{ padding: '0.4rem' }}
@@ -513,77 +767,6 @@ export const AdminDashboard = () => {
                     </table>
                 </div>
             </div>
-
-
-            {/* MODAL: Tenant Session History & Reports */}
-            <Modal isOpen={reportsModal} onClose={() => setReportsModal(false)} title="Tenant Session Log & Reports" maxWidth="680px">
-                {reportsLoading ? (
-                    <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
-                        Fetching session history...
-                    </div>
-                ) : selectedTenantReport ? (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                        <div style={{ padding: '1rem', backgroundColor: 'var(--bg-subtle)', borderRadius: 'var(--radius-md)' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
-                                <span className="badge-blue">Tenant Information</span>
-                            </div>
-                            <h3 style={{ fontSize: '1.2rem', fontWeight: 800, margin: 0 }}>
-                                {selectedTenantReport.business?.name}
-                            </h3>
-                            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: '0.2rem 0 0' }}>
-                                Account created: {formatDate(selectedTenantReport.business?.created_at)}
-                            </p>
-                        </div>
-
-                        <div>
-                            <h4 style={{ fontSize: '0.9rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '0.75rem' }}>
-                                Historical Day Sessions ({selectedTenantReport.sessions?.length || 0})
-                            </h4>
-
-                            {selectedTenantReport.sessions?.length === 0 ? (
-                                <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>No daily sessions have been started by this business yet.</p>
-                            ) : (
-                                <div className="table-container" style={{ maxHeight: '350px', overflowY: 'auto' }}>
-                                    <table className="custom-table">
-                                        <thead>
-                                            <tr>
-                                                <th>Date</th>
-                                                <th>Status</th>
-                                                <th>Opened At</th>
-                                                <th>Closed At</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {selectedTenantReport.sessions?.map((sess) => (
-                                                <tr key={sess.id}>
-                                                    <td style={{ fontWeight: 700 }}>{sess.session_date}</td>
-                                                    <td>
-                                                        <span className={sess.status === 'open' ? "badge-blue" : "badge-outline"}>
-                                                            {sess.status}
-                                                        </span>
-                                                    </td>
-                                                    <td style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                                                        {sess.opened_at ? new Date(sess.opened_at).toLocaleTimeString() : '—'}
-                                                    </td>
-                                                    <td style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                                                        {sess.closed_at ? new Date(sess.closed_at).toLocaleTimeString() : 'Active'}
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            )}
-                        </div>
-
-                        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
-                            <button onClick={() => setReportsModal(false)} className="btn-secondary">
-                                Done
-                            </button>
-                        </div>
-                    </div>
-                ) : null}
-            </Modal>
         </div>
     );
 };
