@@ -57,6 +57,29 @@
     --transition-fast: 0.15s cubic-bezier(0.4, 0, 0.2, 1);
     --transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     --transition-smooth: 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+
+    /* Financial Pillar Color Tokens (Green: Income, Yellow: Direct, Red: Operating) */
+    --color-income: #10b981;
+    --color-income-dark: #059669;
+    --color-income-light: #34d399;
+    --color-income-bg: rgba(16, 185, 129, 0.12);
+    --color-income-border: rgba(16, 185, 129, 0.3);
+
+    --color-direct: #d97706;
+    --color-direct-accent: #f59e0b;
+    --color-direct-light: #fbbf24;
+    --color-direct-bg: rgba(245, 158, 11, 0.12);
+    --color-direct-border: rgba(245, 158, 11, 0.3);
+
+    --color-operating: #ef4444;
+    --color-operating-dark: #dc2626;
+    --color-operating-light: #f87171;
+    --color-operating-bg: rgba(239, 68, 68, 0.12);
+    --color-operating-border: rgba(239, 68, 68, 0.3);
+
+    --color-gross: #2563eb;
+    --color-gross-bg: rgba(37, 99, 235, 0.12);
+    --color-gross-border: rgba(37, 99, 235, 0.3);
 }
 
 /* Dark Mode Tokens */
@@ -81,6 +104,27 @@ html.dark, body.dark {
     --blue-gradient-subtle: linear-gradient(135deg, #0d1a33 0%, #112347 100%);
     --blue-card-glow: 0 4px 24px -2px rgba(0, 0, 0, 0.7), 0 0 15px rgba(59, 130, 246, 0.1);
     --blue-card-hover: 0 14px 34px -4px rgba(0, 0, 0, 0.9), 0 0 25px rgba(96, 165, 250, 0.22);
+
+    /* Dark Mode Financial Tokens */
+    --color-income: #34d399;
+    --color-income-dark: #10b981;
+    --color-income-bg: rgba(16, 185, 129, 0.2);
+    --color-income-border: rgba(52, 211, 153, 0.35);
+
+    --color-direct: #fbbf24;
+    --color-direct-accent: #f59e0b;
+    --color-direct-light: #fde68a;
+    --color-direct-bg: rgba(245, 158, 11, 0.2);
+    --color-direct-border: rgba(251, 191, 36, 0.35);
+
+    --color-operating: #f87171;
+    --color-operating-dark: #ef4444;
+    --color-operating-bg: rgba(239, 68, 68, 0.2);
+    --color-operating-border: rgba(248, 113, 113, 0.35);
+
+    --color-gross: #60a5fa;
+    --color-gross-bg: rgba(59, 130, 246, 0.2);
+    --color-gross-border: rgba(96, 165, 250, 0.35);
 }
 
 body {
@@ -341,6 +385,127 @@ html.dark .badge-blue {
     border: 1px solid var(--border-main);
     color: var(--text-muted);
     white-space: nowrap;
+}
+
+/* Financial Pillar Badges */
+.badge-income {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.25rem 0.65rem;
+    border-radius: var(--radius-full);
+    font-size: 0.725rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    background-color: var(--color-income-bg);
+    color: var(--color-income);
+    border: 1px solid var(--color-income-border);
+    white-space: nowrap;
+}
+
+.badge-direct {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.25rem 0.65rem;
+    border-radius: var(--radius-full);
+    font-size: 0.725rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    background-color: var(--color-direct-bg);
+    color: var(--color-direct);
+    border: 1px solid var(--color-direct-border);
+    white-space: nowrap;
+}
+
+.badge-operating {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.25rem 0.65rem;
+    border-radius: var(--radius-full);
+    font-size: 0.725rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    background-color: var(--color-operating-bg);
+    color: var(--color-operating);
+    border: 1px solid var(--color-operating-border);
+    white-space: nowrap;
+}
+
+.badge-gross {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.25rem 0.65rem;
+    border-radius: var(--radius-full);
+    font-size: 0.725rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    background-color: var(--color-gross-bg);
+    color: var(--color-gross);
+    border: 1px solid var(--color-gross-border);
+    white-space: nowrap;
+}
+
+/* Action Button: Record Income */
+.btn-income {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    font-size: 0.9rem;
+    font-weight: 700;
+    border-radius: var(--radius-md);
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+    color: #ffffff !important;
+    border: none !important;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);
+    transition: all var(--transition-fast);
+}
+
+.btn-income:hover {
+    background: linear-gradient(135deg, #059669 0%, #047857 100%) !important;
+    box-shadow: 0 6px 18px rgba(16, 185, 129, 0.4);
+    transform: translateY(-1px);
+}
+
+.btn-income:active {
+    transform: scale(0.97);
+}
+
+/* Action Button: Record Expense */
+.btn-expense {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    font-size: 0.9rem;
+    font-weight: 700;
+    border-radius: var(--radius-md);
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%) !important;
+    color: #ffffff !important;
+    border: none !important;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(239, 68, 68, 0.3);
+    transition: all var(--transition-fast);
+}
+
+.btn-expense:hover {
+    background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%) !important;
+    box-shadow: 0 6px 18px rgba(239, 68, 68, 0.4);
+    transform: translateY(-1px);
+}
+
+.btn-expense:active {
+    transform: scale(0.97);
 }
 
 /* Interactive Tabs */

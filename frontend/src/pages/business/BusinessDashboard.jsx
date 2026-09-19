@@ -279,10 +279,9 @@ export const BusinessDashboard = () => {
                                 <button 
                                     type="button"
                                     onClick={() => toggleForm('income')}
-                                    className="btn-primary"
+                                    className="btn-income"
                                     style={{ 
-                                        background: activeForm === 'income' ? 'var(--blue-700)' : 'var(--blue-gradient)',
-                                        outline: activeForm === 'income' ? '2px solid var(--blue-400)' : 'none'
+                                        outline: activeForm === 'income' ? '3px solid var(--color-income-light, #34d399)' : 'none'
                                     }}
                                 >
                                     <PlusCircle size={17} /> {activeForm === 'income' ? 'Close Income Form' : 'Record Income'}
@@ -290,11 +289,9 @@ export const BusinessDashboard = () => {
                                 <button 
                                     type="button"
                                     onClick={() => toggleForm('expense')}
-                                    className="btn-secondary"
+                                    className="btn-expense"
                                     style={{
-                                        borderColor: activeForm === 'expense' ? 'var(--blue-500)' : undefined,
-                                        backgroundColor: activeForm === 'expense' ? 'var(--bg-subtle)' : undefined,
-                                        outline: activeForm === 'expense' ? '2px solid var(--blue-400)' : 'none'
+                                        outline: activeForm === 'expense' ? '3px solid var(--color-operating-light, #f87171)' : 'none'
                                     }}
                                 >
                                     <PlusCircle size={17} /> {activeForm === 'expense' ? 'Close Expense Form' : 'Record Expense'}
@@ -304,7 +301,7 @@ export const BusinessDashboard = () => {
                                     onClick={handleCloseDay}
                                     disabled={actionLoading}
                                     className="btn-outline"
-                                    style={{ color: 'var(--blue-700)', borderColor: 'var(--blue-400)' }}
+                                    style={{ color: 'var(--text-secondary)', borderColor: 'var(--border-main)' }}
                                 >
                                     <Square size={17} /> Finalize & Close Day
                                 </button>
@@ -316,10 +313,10 @@ export const BusinessDashboard = () => {
 
             {/* Inline Flexible Filling Section (Scrollable with the page) */}
             {activeForm === 'income' && (
-                <section ref={formSectionRef} className="filling-card-section animate-fade-in">
+                <section ref={formSectionRef} className="filling-card-section animate-fade-in" style={{ border: '2px solid var(--color-income, #10b981)', boxShadow: '0 0 25px rgba(16, 185, 129, 0.15)' }}>
                     <div className="filling-card-header">
                         <div className="filling-card-title-group">
-                            <div className="filling-card-icon">
+                            <div className="filling-card-icon" style={{ backgroundColor: 'var(--color-income-bg)', color: 'var(--color-income)' }}>
                                 <ArrowUpRight size={20} />
                             </div>
                             <div>
@@ -332,7 +329,7 @@ export const BusinessDashboard = () => {
                             </div>
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                            <span className="badge-blue">Live Entry</span>
+                            <span className="badge-income">Revenue Inflow</span>
                             <button 
                                 type="button"
                                 onClick={() => setActiveForm(null)}
@@ -347,7 +344,7 @@ export const BusinessDashboard = () => {
 
                     <form onSubmit={handleAddIncome} className="filling-card-body">
                         <div className="input-group">
-                            <label className="input-label">Income Amount (TSh)</label>
+                            <label className="input-label" style={{ color: 'var(--color-income)', fontWeight: 700 }}>Income Amount (TSh)</label>
                             <input 
                                 type="number" 
                                 step="any" 
@@ -357,7 +354,7 @@ export const BusinessDashboard = () => {
                                 value={incomeAmount}
                                 onChange={(e) => setIncomeAmount(e.target.value)}
                                 className="input-control"
-                                style={{ fontSize: '1.15rem', fontWeight: 700 }}
+                                style={{ fontSize: '1.15rem', fontWeight: 700, borderColor: 'var(--color-income-border)' }}
                                 autoFocus
                             />
                             {/* Quick Amount Helper Chips */}
@@ -436,7 +433,7 @@ export const BusinessDashboard = () => {
                             <button 
                                 type="submit" 
                                 disabled={actionLoading} 
-                                className="btn-primary" 
+                                className="btn-income" 
                                 style={{ minWidth: '150px' }}
                             >
                                 {actionLoading ? 'Saving...' : 'Save Income'}
@@ -446,292 +443,376 @@ export const BusinessDashboard = () => {
                 </section>
             )}
 
-            {activeForm === 'expense' && (
-                <section ref={formSectionRef} className="filling-card-section animate-fade-in">
-                    <div className="filling-card-header">
-                        <div className="filling-card-title-group">
-                            <div className="filling-card-icon" style={{ backgroundColor: 'var(--blue-100)', color: 'var(--blue-700)' }}>
-                                <ArrowDownRight size={20} />
+            {activeForm === 'expense' && (() => {
+                const isDirect = expenseType === 'direct';
+                return (
+                    <section 
+                        ref={formSectionRef} 
+                        className="filling-card-section animate-fade-in"
+                        style={{ 
+                            border: isDirect ? '2px solid var(--color-direct-accent, #f59e0b)' : '2px solid var(--color-operating, #ef4444)',
+                            boxShadow: isDirect ? '0 0 25px rgba(245, 158, 11, 0.15)' : '0 0 25px rgba(239, 68, 68, 0.15)'
+                        }}
+                    >
+                        <div className="filling-card-header">
+                            <div className="filling-card-title-group">
+                                <div 
+                                    className="filling-card-icon" 
+                                    style={{ 
+                                        backgroundColor: isDirect ? 'var(--color-direct-bg)' : 'var(--color-operating-bg)', 
+                                        color: isDirect ? 'var(--color-direct)' : 'var(--color-operating)' 
+                                    }}
+                                >
+                                    {isDirect ? <ArrowDownRight size={20} /> : <Layers size={20} />}
+                                </div>
+                                <div>
+                                    <h3 style={{ fontSize: '1.2rem', fontWeight: 800, margin: 0, color: 'var(--text-primary)' }}>
+                                        {isDirect ? 'Record Direct Expense (Stock & Inventory)' : 'Record Operating Expense (Overhead)'}
+                                    </h3>
+                                    <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: '0.2rem 0 0' }}>
+                                        {isDirect ? 'Direct cost of goods impacting your gross trading profit' : 'Operating overhead (rent, utilities, wages) impacting net profit'}
+                                    </p>
+                                </div>
                             </div>
-                            <div>
-                                <h3 style={{ fontSize: '1.2rem', fontWeight: 800, margin: 0, color: 'var(--text-primary)' }}>
-                                    Record Business Expense
-                                </h3>
-                                <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: '0.2rem 0 0' }}>
-                                    Log operational or direct expenses for today's session
-                                </p>
-                            </div>
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                            <span className="badge-outline">Cost Entry</span>
-                            <button 
-                                type="button"
-                                onClick={() => setActiveForm(null)}
-                                className="btn-icon"
-                                aria-label="Close form"
-                                style={{ padding: '0.45rem', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-full)' }}
-                            >
-                                <X size={18} />
-                            </button>
-                        </div>
-                    </div>
-
-                    <form onSubmit={handleAddExpense} className="filling-card-body">
-                        <div className="input-group">
-                            <label className="input-label">Expense Amount (TSh)</label>
-                            <input 
-                                type="number" 
-                                step="any" 
-                                min="1"
-                                required
-                                placeholder="e.g. 25000"
-                                value={expenseAmount}
-                                onChange={(e) => setExpenseAmount(e.target.value)}
-                                className="input-control"
-                                style={{ fontSize: '1.15rem', fontWeight: 700 }}
-                                autoFocus
-                            />
-                            {/* Quick Expense Amount Chips */}
-                            <div className="quick-chips">
-                                <span style={{ fontSize: '0.725rem', color: 'var(--text-muted)', fontWeight: 600 }}>Quick Add:</span>
-                                {[5000, 10000, 20000, 50000].map((val) => (
-                                    <button
-                                        key={val}
-                                        type="button"
-                                        onClick={() => {
-                                            const current = parseFloat(expenseAmount) || 0;
-                                            setExpenseAmount(String(current + val));
-                                        }}
-                                        className="chip-btn"
-                                    >
-                                        +{val.toLocaleString()}
-                                    </button>
-                                ))}
-                                {expenseAmount && (
-                                    <button
-                                        type="button"
-                                        onClick={() => setExpenseAmount('')}
-                                        className="chip-btn chip-btn-clear"
-                                    >
-                                        Clear
-                                    </button>
-                                )}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                                <span className={isDirect ? "badge-direct" : "badge-operating"}>
+                                    {isDirect ? "Direct Cost (COGS)" : "Operating Cost"}
+                                </span>
+                                <button 
+                                    type="button"
+                                    onClick={() => setActiveForm(null)}
+                                    className="btn-icon"
+                                    aria-label="Close form"
+                                    style={{ padding: '0.45rem', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-full)' }}
+                                >
+                                    <X size={18} />
+                                </button>
                             </div>
                         </div>
 
-                        <div className="input-group">
-                            <label className="input-label">Expense Category</label>
-                            <input 
-                                type="text" 
-                                required
-                                placeholder="e.g. Stock Purchase, Rent, Transport"
-                                value={expenseCategory}
-                                onChange={(e) => setExpenseCategory(e.target.value)}
-                                className="input-control"
-                            />
-                            {/* Quick Category Suggestions */}
-                            <div className="quick-chips">
-                                {['Stock / Goods', 'Shop Rent', 'Transport / Fare', 'Electricity / Water', 'Staff Wages'].map((cat) => (
-                                    <button
-                                        key={cat}
-                                        type="button"
-                                        onClick={() => setExpenseCategory(cat)}
-                                        className={`chip-btn ${expenseCategory === cat ? 'active' : ''}`}
-                                    >
-                                        {cat}
-                                    </button>
-                                ))}
+                        <form onSubmit={handleAddExpense} className="filling-card-body">
+                            <div className="input-group">
+                                <label className="input-label" style={{ color: isDirect ? 'var(--color-direct)' : 'var(--color-operating)', fontWeight: 700 }}>
+                                    Expense Amount (TSh)
+                                </label>
+                                <input 
+                                    type="number" 
+                                    step="any" 
+                                    min="1"
+                                    required
+                                    placeholder="e.g. 25000"
+                                    value={expenseAmount}
+                                    onChange={(e) => setExpenseAmount(e.target.value)}
+                                    className="input-control"
+                                    style={{ 
+                                        fontSize: '1.15rem', 
+                                        fontWeight: 700, 
+                                        borderColor: isDirect ? 'var(--color-direct-border)' : 'var(--color-operating-border)' 
+                                    }}
+                                    autoFocus
+                                />
+                                {/* Quick Expense Amount Chips */}
+                                <div className="quick-chips">
+                                    <span style={{ fontSize: '0.725rem', color: 'var(--text-muted)', fontWeight: 600 }}>Quick Add:</span>
+                                    {[5000, 10000, 20000, 50000].map((val) => (
+                                        <button
+                                            key={val}
+                                            type="button"
+                                            onClick={() => {
+                                                const current = parseFloat(expenseAmount) || 0;
+                                                setExpenseAmount(String(current + val));
+                                            }}
+                                            className="chip-btn"
+                                        >
+                                            +{val.toLocaleString()}
+                                        </button>
+                                    ))}
+                                    {expenseAmount && (
+                                        <button
+                                            type="button"
+                                            onClick={() => setExpenseAmount('')}
+                                            className="chip-btn chip-btn-clear"
+                                        >
+                                            Clear
+                                        </button>
+                                    )}
+                                </div>
                             </div>
-                        </div>
 
-                        <div className="input-group">
-                            <label className="input-label">Expense Classification</label>
-                            <select 
-                                value={expenseType}
-                                onChange={(e) => setExpenseType(e.target.value)}
-                                className="input-control"
-                            >
-                                <option value="direct">Direct Expense (Stock / Raw materials - impacts Gross Profit)</option>
-                                <option value="operating">Operating Expense (Rent, Power, Wages - impacts Net Profit)</option>
-                            </select>
-                        </div>
+                            <div className="input-group">
+                                <label className="input-label">Expense Classification</label>
+                                <select 
+                                    value={expenseType}
+                                    onChange={(e) => setExpenseType(e.target.value)}
+                                    className="input-control"
+                                    style={{
+                                        fontWeight: 600,
+                                        borderColor: isDirect ? 'var(--color-direct-border)' : 'var(--color-operating-border)'
+                                    }}
+                                >
+                                    <option value="direct">Direct Expense (Stock / Raw Materials — impacts Gross Profit)</option>
+                                    <option value="operating">Operating Expense (Rent, Power, Wages — impacts Net Profit)</option>
+                                </select>
+                            </div>
 
-                        <div className="input-group">
-                            <label className="input-label">Description (Optional)</label>
-                            <textarea 
-                                rows={2}
-                                placeholder="Vendor invoice, receipt note, or details"
-                                value={expenseDesc}
-                                onChange={(e) => setExpenseDesc(e.target.value)}
-                                className="input-control"
-                                style={{ resize: 'vertical' }}
-                            />
-                        </div>
+                            <div className="input-group">
+                                <label className="input-label">Expense Category</label>
+                                <input 
+                                    type="text" 
+                                    required
+                                    placeholder="e.g. Stock Purchase, Rent, Transport"
+                                    value={expenseCategory}
+                                    onChange={(e) => setExpenseCategory(e.target.value)}
+                                    className="input-control"
+                                />
+                                {/* Quick Category Suggestions */}
+                                <div className="quick-chips">
+                                    {['Stock / Goods', 'Shop Rent', 'Transport / Fare', 'Electricity / Water', 'Staff Wages'].map((cat) => (
+                                        <button
+                                            key={cat}
+                                            type="button"
+                                            onClick={() => setExpenseCategory(cat)}
+                                            className={`chip-btn ${expenseCategory === cat ? 'active' : ''}`}
+                                        >
+                                            {cat}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
 
-                        <div className="filling-card-footer">
-                            <button 
-                                type="button" 
-                                onClick={() => setActiveForm(null)} 
-                                className="btn-outline"
-                            >
-                                Cancel
-                            </button>
-                            <button 
-                                type="submit" 
-                                disabled={actionLoading} 
-                                className="btn-primary" 
-                                style={{ minWidth: '150px' }}
-                            >
-                                {actionLoading ? 'Saving...' : 'Save Expense'}
-                            </button>
-                        </div>
-                    </form>
-                </section>
-            )}
+                            <div className="input-group">
+                                <label className="input-label">Description (Optional)</label>
+                                <textarea 
+                                    rows={2}
+                                    placeholder="Vendor invoice, receipt note, or details"
+                                    value={expenseDesc}
+                                    onChange={(e) => setExpenseDesc(e.target.value)}
+                                    className="input-control"
+                                    style={{ resize: 'vertical' }}
+                                />
+                            </div>
 
-            {/* 3. Core Financial Metrics Grid (Strict Blue & White Palette) */}
+                            <div className="filling-card-footer">
+                                <button 
+                                    type="button" 
+                                    onClick={() => setActiveForm(null)} 
+                                    className="btn-outline"
+                                >
+                                    Cancel
+                                </button>
+                                <button 
+                                    type="submit" 
+                                    disabled={actionLoading} 
+                                    className={isDirect ? "btn-income" : "btn-expense"}
+                                    style={{ 
+                                        minWidth: '150px',
+                                        background: isDirect 
+                                            ? 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%) !important' 
+                                            : undefined,
+                                        boxShadow: isDirect 
+                                            ? '0 4px 14px rgba(245, 158, 11, 0.35)' 
+                                            : undefined
+                                    }}
+                                >
+                                    {actionLoading ? 'Saving...' : isDirect ? 'Save Direct Expense' : 'Save Operating Expense'}
+                                </button>
+                            </div>
+                        </form>
+                    </section>
+                );
+            })()}
+
+            {/* 3. Core Financial Metrics Grid */}
             <section className="metrics-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: '1.25rem' }}>
                 {/* 1. Today's Incomes */}
-                <div className="blue-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                <div className="blue-card" style={{ 
+                    padding: '1.5rem', 
+                    display: 'flex', 
+                    flexDirection: 'column', 
+                    justifyContent: 'space-between',
+                    borderTop: '3px solid var(--color-income, #10b981)'
+                }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                         <div>
-                            <span style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-muted)' }}>
+                            <span style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--color-income, #10b981)' }}>
                                 Today's Income
                             </span>
-                            <h2 style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-primary)', margin: '0.4rem 0 0' }}>
+                            <h2 style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--color-income, #10b981)', margin: '0.4rem 0 0' }}>
                                 {formatCurrency(metrics.totalIncome || 0)}
                             </h2>
                         </div>
                         <div style={{
                             padding: '0.65rem',
                             borderRadius: 'var(--radius-md)',
-                            backgroundColor: 'var(--blue-100)',
-                            color: 'var(--blue-700)',
-                            border: '1px solid var(--blue-200)'
+                            backgroundColor: 'var(--color-income-bg)',
+                            color: 'var(--color-income)',
+                            border: '1px solid var(--color-income-border)'
                         }}>
                             <ArrowUpRight size={20} />
                         </div>
                     </div>
                     <div style={{ marginTop: '1.25rem', paddingTop: '0.75rem', borderTop: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                         <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Revenue Inflows</span>
-                        <span className="badge-blue" style={{ fontSize: '0.65rem' }}>Active Session</span>
+                        <span className="badge-income" style={{ fontSize: '0.65rem' }}>Active Session</span>
                     </div>
                 </div>
 
                 {/* 2. Direct Expenses (COGS) */}
-                <div className="blue-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                <div className="blue-card" style={{ 
+                    padding: '1.5rem', 
+                    display: 'flex', 
+                    flexDirection: 'column', 
+                    justifyContent: 'space-between',
+                    borderTop: '3px solid var(--color-direct-accent, #f59e0b)'
+                }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                         <div>
-                            <span style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-muted)' }}>
+                            <span style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--color-direct, #d97706)' }}>
                                 Direct Expenses (COGS)
                             </span>
-                            <h2 style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--blue-800)', margin: '0.4rem 0 0' }}>
+                            <h2 style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--color-direct, #d97706)', margin: '0.4rem 0 0' }}>
                                 {formatCurrency(metrics.totalDirectExp || 0)}
                             </h2>
                         </div>
                         <div style={{
                             padding: '0.65rem',
                             borderRadius: 'var(--radius-md)',
-                            backgroundColor: 'var(--bg-subtle)',
-                            color: 'var(--blue-600)',
-                            border: '1px solid var(--border-main)'
+                            backgroundColor: 'var(--color-direct-bg)',
+                            color: 'var(--color-direct)',
+                            border: '1px solid var(--color-direct-border)'
                         }}>
                             <ArrowDownRight size={20} />
                         </div>
                     </div>
                     <div style={{ marginTop: '1.25rem', paddingTop: '0.75rem', borderTop: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                         <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Inventory & Goods</span>
-                        <span className="badge-outline" style={{ fontSize: '0.65rem' }}>Direct Cost</span>
+                        <span className="badge-direct" style={{ fontSize: '0.65rem' }}>Direct Cost</span>
                     </div>
                 </div>
 
                 {/* 3. Operating Expenses */}
-                <div className="blue-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                <div className="blue-card" style={{ 
+                    padding: '1.5rem', 
+                    display: 'flex', 
+                    flexDirection: 'column', 
+                    justifyContent: 'space-between',
+                    borderTop: '3px solid var(--color-operating, #ef4444)'
+                }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                         <div>
-                            <span style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-muted)' }}>
+                            <span style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--color-operating, #ef4444)' }}>
                                 Operating Expenses
                             </span>
-                            <h2 style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-secondary)', margin: '0.4rem 0 0' }}>
+                            <h2 style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--color-operating, #ef4444)', margin: '0.4rem 0 0' }}>
                                 {formatCurrency(metrics.totalOperatingExp || 0)}
                             </h2>
                         </div>
                         <div style={{
                             padding: '0.65rem',
                             borderRadius: 'var(--radius-md)',
-                            backgroundColor: 'var(--bg-subtle)',
-                            color: 'var(--text-muted)',
-                            border: '1px solid var(--border-main)'
+                            backgroundColor: 'var(--color-operating-bg)',
+                            color: 'var(--color-operating)',
+                            border: '1px solid var(--color-operating-border)'
                         }}>
                             <Layers size={20} />
                         </div>
                     </div>
                     <div style={{ marginTop: '1.25rem', paddingTop: '0.75rem', borderTop: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                         <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Rent, Utilities, Staff</span>
-                        <span className="badge-outline" style={{ fontSize: '0.65rem' }}>Overhead</span>
+                        <span className="badge-operating" style={{ fontSize: '0.65rem' }}>Overhead</span>
                     </div>
                 </div>
 
                 {/* 4. Gross Profit / Loss */}
-                <div className="blue-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                <div className="blue-card" style={{ 
+                    padding: '1.5rem', 
+                    display: 'flex', 
+                    flexDirection: 'column', 
+                    justifyContent: 'space-between',
+                    borderTop: '3px solid var(--color-gross, #2563eb)'
+                }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                         <div>
-                            <span style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-muted)' }}>
+                            <span style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--color-gross, #2563eb)' }}>
                                 Gross Profit
                             </span>
-                            <h2 style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--blue-600)', margin: '0.4rem 0 0' }}>
+                            <h2 style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--color-gross, #2563eb)', margin: '0.4rem 0 0' }}>
                                 {formatCurrency(metrics.grossProfit || 0)}
                             </h2>
                         </div>
                         <div style={{
                             padding: '0.65rem',
                             borderRadius: 'var(--radius-md)',
-                            backgroundColor: 'var(--blue-100)',
-                            color: 'var(--blue-700)',
-                            border: '1px solid var(--blue-300)'
+                            backgroundColor: 'var(--color-gross-bg)',
+                            color: 'var(--color-gross)',
+                            border: '1px solid var(--color-gross-border)'
                         }}>
                             <TrendingUp size={20} />
                         </div>
                     </div>
                     <div style={{ marginTop: '1.25rem', paddingTop: '0.75rem', borderTop: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                         <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Revenue - Direct Exp</span>
-                        <span className="badge-blue" style={{ fontSize: '0.65rem' }}>Formula</span>
+                        <span className="badge-gross" style={{ fontSize: '0.65rem' }}>Trading Margin</span>
                     </div>
                 </div>
 
                 {/* 5. Net Profit / Loss */}
-                <div className="blue-card" style={{ 
-                    padding: '1.5rem', 
-                    display: 'flex', 
-                    flexDirection: 'column', 
-                    justifyContent: 'space-between',
-                    border: '2px solid var(--blue-500)',
-                    background: 'var(--blue-gradient-subtle)'
-                }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                        <div>
-                            <span style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--blue-700)' }}>
-                                Today's Net Profit
-                            </span>
-                            <h2 style={{ fontSize: '1.9rem', fontWeight: 900, color: 'var(--text-primary)', margin: '0.4rem 0 0' }}>
-                                {formatCurrency(metrics.netProfit || 0)}
-                            </h2>
-                        </div>
-                        <div style={{
-                            padding: '0.65rem',
-                            borderRadius: 'var(--radius-md)',
-                            backgroundColor: 'var(--blue-600)',
-                            color: '#ffffff',
-                            boxShadow: '0 4px 12px rgba(37, 99, 235, 0.4)'
+                {(() => {
+                    const isProfitable = (metrics.netProfit || 0) >= 0;
+                    return (
+                        <div className="blue-card" style={{ 
+                            padding: '1.5rem', 
+                            display: 'flex', 
+                            flexDirection: 'column', 
+                            justifyContent: 'space-between',
+                            border: isProfitable ? '2px solid var(--color-income, #10b981)' : '2px solid var(--color-operating, #ef4444)',
+                            backgroundColor: isProfitable ? 'var(--color-income-bg)' : 'var(--color-operating-bg)'
                         }}>
-                            <DollarSign size={20} />
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                <div>
+                                    <span style={{ 
+                                        fontSize: '0.75rem', 
+                                        fontWeight: 800, 
+                                        textTransform: 'uppercase', 
+                                        letterSpacing: '0.06em', 
+                                        color: isProfitable ? 'var(--color-income, #10b981)' : 'var(--color-operating, #ef4444)' 
+                                    }}>
+                                        {isProfitable ? "Today's Net Profit" : "Today's Net Loss"}
+                                    </span>
+                                    <h2 style={{ 
+                                        fontSize: '1.9rem', 
+                                        fontWeight: 900, 
+                                        color: isProfitable ? 'var(--color-income, #10b981)' : 'var(--color-operating, #ef4444)', 
+                                        margin: '0.4rem 0 0' 
+                                    }}>
+                                        {formatCurrency(metrics.netProfit || 0)}
+                                    </h2>
+                                </div>
+                                <div style={{
+                                    padding: '0.65rem',
+                                    borderRadius: 'var(--radius-md)',
+                                    background: isProfitable 
+                                        ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' 
+                                        : 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+                                    color: '#ffffff',
+                                    boxShadow: isProfitable 
+                                        ? '0 4px 12px rgba(16, 185, 129, 0.4)' 
+                                        : '0 4px 12px rgba(239, 68, 68, 0.4)'
+                                }}>
+                                    <DollarSign size={20} />
+                                </div>
+                            </div>
+                            <div style={{ marginTop: '1.25rem', paddingTop: '0.75rem', borderTop: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                <span style={{ fontSize: '0.75rem', fontWeight: 600, color: isProfitable ? 'var(--color-income, #10b981)' : 'var(--color-operating, #ef4444)' }}>
+                                    Gross - Operating
+                                </span>
+                                <span className={isProfitable ? "badge-income" : "badge-operating"} style={{ fontSize: '0.65rem' }}>
+                                    {isProfitable ? 'Bottom Line Surplus' : 'Bottom Line Deficit'}
+                                </span>
+                            </div>
                         </div>
-                    </div>
-                    <div style={{ marginTop: '1.25rem', paddingTop: '0.75rem', borderTop: '1px solid var(--border-main)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--blue-700)' }}>Gross - Operating</span>
-                        <span className="badge-blue" style={{ fontSize: '0.65rem' }}>Final Bottom Line</span>
-                    </div>
-                </div>
+                    );
+                })()}
             </section>
 
             {/* 4. Visual Financial Proportions Breakdown (Interactive Pie Chart) */}
@@ -780,19 +861,27 @@ export const BusinessDashboard = () => {
                             <tbody>
                                 {recentTransactions.map((tx) => {
                                     const isIncome = tx.type === 'income';
+                                    const isDirect = tx.type === 'direct';
+                                    const badgeClass = isIncome ? "badge-income" : isDirect ? "badge-direct" : "badge-operating";
+                                    const amountColor = isIncome 
+                                        ? 'var(--color-income, #10b981)' 
+                                        : isDirect 
+                                        ? 'var(--color-direct, #d97706)' 
+                                        : 'var(--color-operating, #ef4444)';
+
                                     return (
                                         <tr key={`${tx.type}-${tx.id}`}>
                                             <td>
-                                                <span className={isIncome ? "badge-blue" : "badge-outline"}>
-                                                    {isIncome ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
-                                                    {isIncome ? 'Income' : tx.type === 'direct' ? 'Direct Exp' : 'Operating Exp'}
+                                                <span className={badgeClass}>
+                                                    {isIncome ? <ArrowUpRight size={12} /> : isDirect ? <ArrowDownRight size={12} /> : <Layers size={12} />}
+                                                    {isIncome ? 'Income' : isDirect ? 'Direct Exp' : 'Operating Exp'}
                                                 </span>
                                             </td>
                                             <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
                                                 {tx.source || tx.category}
                                             </td>
                                             <td>{tx.description || '—'}</td>
-                                            <td style={{ fontWeight: 700, color: isIncome ? 'var(--blue-600)' : 'var(--text-primary)' }}>
+                                            <td style={{ fontWeight: 700, color: amountColor }}>
                                                 {isIncome ? '+' : '-'}{formatCurrency(tx.amount)}
                                             </td>
                                             <td>{formatDate(tx.created_at)}</td>
@@ -822,25 +911,42 @@ export const BusinessDashboard = () => {
 
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem', borderBottom: '1px solid var(--border-subtle)' }}>
-                                <span style={{ color: 'var(--text-secondary)' }}>Total Income:</span>
-                                <strong style={{ color: 'var(--blue-600)' }}>{formatCurrency(daySummaryData.totalIncome)}</strong>
+                                <span style={{ color: 'var(--color-income, #10b981)', fontWeight: 700 }}>Total Income:</span>
+                                <strong style={{ color: 'var(--color-income, #10b981)', fontWeight: 800 }}>+{formatCurrency(daySummaryData.totalIncome)}</strong>
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem', borderBottom: '1px solid var(--border-subtle)' }}>
-                                <span style={{ color: 'var(--text-secondary)' }}>Direct Expenses (COGS):</span>
-                                <strong>{formatCurrency(daySummaryData.totalDirectExp)}</strong>
+                                <span style={{ color: 'var(--color-direct, #d97706)', fontWeight: 700 }}>Direct Expenses (COGS):</span>
+                                <strong style={{ color: 'var(--color-direct, #d97706)', fontWeight: 800 }}>-{formatCurrency(daySummaryData.totalDirectExp)}</strong>
                             </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem', borderBottom: '1px solid var(--border-subtle)', backgroundColor: 'var(--bg-subtle)', borderRadius: 'var(--radius-sm)' }}>
-                                <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>Gross Profit:</span>
-                                <strong style={{ color: 'var(--blue-600)', fontWeight: 800 }}>{formatCurrency(daySummaryData.grossProfit)}</strong>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem', borderBottom: '1px solid var(--border-subtle)', backgroundColor: 'var(--color-gross-bg)', borderRadius: 'var(--radius-sm)' }}>
+                                <span style={{ fontWeight: 700, color: 'var(--color-gross, #2563eb)' }}>Gross Profit:</span>
+                                <strong style={{ color: 'var(--color-gross, #2563eb)', fontWeight: 800 }}>{formatCurrency(daySummaryData.grossProfit)}</strong>
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem', borderBottom: '1px solid var(--border-subtle)' }}>
-                                <span style={{ color: 'var(--text-secondary)' }}>Operating Expenses:</span>
-                                <strong>{formatCurrency(daySummaryData.totalOperatingExp)}</strong>
+                                <span style={{ color: 'var(--color-operating, #ef4444)', fontWeight: 700 }}>Operating Expenses:</span>
+                                <strong style={{ color: 'var(--color-operating, #ef4444)', fontWeight: 800 }}>-{formatCurrency(daySummaryData.totalOperatingExp)}</strong>
                             </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.85rem', background: 'var(--blue-gradient)', color: '#ffffff', borderRadius: 'var(--radius-md)' }}>
-                                <span style={{ fontWeight: 700, color: '#ffffff' }}>Net Profit / Loss:</span>
-                                <strong style={{ fontSize: '1.2rem', color: '#ffffff', fontWeight: 900 }}>{formatCurrency(daySummaryData.netProfit)}</strong>
-                            </div>
+                            {(() => {
+                                const isNetPos = (daySummaryData.netProfit || 0) >= 0;
+                                return (
+                                    <div style={{ 
+                                        display: 'flex', 
+                                        justifyContent: 'space-between', 
+                                        padding: '0.85rem', 
+                                        background: isNetPos 
+                                            ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' 
+                                            : 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)', 
+                                        color: '#ffffff', 
+                                        borderRadius: 'var(--radius-md)',
+                                        boxShadow: isNetPos 
+                                            ? '0 4px 14px rgba(16, 185, 129, 0.35)' 
+                                            : '0 4px 14px rgba(239, 68, 68, 0.35)'
+                                    }}>
+                                        <span style={{ fontWeight: 700, color: '#ffffff' }}>Net Profit / Loss:</span>
+                                        <strong style={{ fontSize: '1.2rem', color: '#ffffff', fontWeight: 900 }}>{formatCurrency(daySummaryData.netProfit)}</strong>
+                                    </div>
+                                );
+                            })()}
                         </div>
 
                         <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1rem' }}>

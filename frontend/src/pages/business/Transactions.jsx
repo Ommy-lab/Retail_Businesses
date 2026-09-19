@@ -86,10 +86,18 @@ export const Transactions = () => {
         return src.includes(query) || cat.includes(query) || desc.includes(query) || amt.includes(query);
     });
 
-    // Tab Counts
-    const incomeCount = transactions.filter(t => t.type === 'income').length;
-    const directCount = transactions.filter(t => t.type === 'direct').length;
-    const operatingCount = transactions.filter(t => t.type === 'operating').length;
+    // Tab Counts & Financial Sums
+    const incomeTx = transactions.filter(t => t.type === 'income');
+    const directTx = transactions.filter(t => t.type === 'direct');
+    const operatingTx = transactions.filter(t => t.type === 'operating');
+
+    const incomeCount = incomeTx.length;
+    const directCount = directTx.length;
+    const operatingCount = operatingTx.length;
+
+    const totalIncomeSum = incomeTx.reduce((sum, t) => sum + (parseFloat(t.amount) || 0), 0);
+    const totalDirectSum = directTx.reduce((sum, t) => sum + (parseFloat(t.amount) || 0), 0);
+    const totalOperatingSum = operatingTx.reduce((sum, t) => sum + (parseFloat(t.amount) || 0), 0);
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
@@ -119,6 +127,34 @@ export const Transactions = () => {
                         className="input-control"
                         style={{ paddingLeft: '2.5rem', borderRadius: 'var(--radius-full)' }}
                     />
+                </div>
+            </div>
+
+            {/* Quick Financial Volume Summary */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+                <div className="blue-card" style={{ padding: '1rem 1.25rem', borderTop: '3px solid var(--color-income, #10b981)' }}>
+                    <span style={{ fontSize: '0.725rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--color-income, #10b981)' }}>
+                        All-Time Inflows ({incomeCount})
+                    </span>
+                    <h3 style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--color-income, #10b981)', margin: '0.25rem 0 0' }}>
+                        +{formatCurrency(totalIncomeSum)}
+                    </h3>
+                </div>
+                <div className="blue-card" style={{ padding: '1rem 1.25rem', borderTop: '3px solid var(--color-direct-accent, #f59e0b)' }}>
+                    <span style={{ fontSize: '0.725rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--color-direct, #d97706)' }}>
+                        Direct COGS ({directCount})
+                    </span>
+                    <h3 style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--color-direct, #d97706)', margin: '0.25rem 0 0' }}>
+                        -{formatCurrency(totalDirectSum)}
+                    </h3>
+                </div>
+                <div className="blue-card" style={{ padding: '1rem 1.25rem', borderTop: '3px solid var(--color-operating, #ef4444)' }}>
+                    <span style={{ fontSize: '0.725rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--color-operating, #ef4444)' }}>
+                        Operating Overhead ({operatingCount})
+                    </span>
+                    <h3 style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--color-operating, #ef4444)', margin: '0.25rem 0 0' }}>
+                        -{formatCurrency(totalOperatingSum)}
+                    </h3>
                 </div>
             </div>
 
@@ -155,20 +191,35 @@ export const Transactions = () => {
                 <button 
                     onClick={() => setActiveTab('income')}
                     className={`tab-btn ${activeTab === 'income' ? 'active' : ''}`}
+                    style={activeTab === 'income' ? {
+                        backgroundColor: 'var(--color-income-bg)',
+                        color: 'var(--color-income)',
+                        borderColor: 'var(--color-income-border)'
+                    } : {}}
                 >
-                    <ArrowUpRight size={15} /> Incomes ({incomeCount})
+                    <ArrowUpRight size={15} style={{ color: 'var(--color-income)' }} /> Incomes ({incomeCount})
                 </button>
                 <button 
                     onClick={() => setActiveTab('direct')}
                     className={`tab-btn ${activeTab === 'direct' ? 'active' : ''}`}
+                    style={activeTab === 'direct' ? {
+                        backgroundColor: 'var(--color-direct-bg)',
+                        color: 'var(--color-direct)',
+                        borderColor: 'var(--color-direct-border)'
+                    } : {}}
                 >
-                    <ArrowDownRight size={15} /> Direct Costs ({directCount})
+                    <ArrowDownRight size={15} style={{ color: 'var(--color-direct)' }} /> Direct Costs ({directCount})
                 </button>
                 <button 
                     onClick={() => setActiveTab('operating')}
                     className={`tab-btn ${activeTab === 'operating' ? 'active' : ''}`}
+                    style={activeTab === 'operating' ? {
+                        backgroundColor: 'var(--color-operating-bg)',
+                        color: 'var(--color-operating)',
+                        borderColor: 'var(--color-operating-border)'
+                    } : {}}
                 >
-                    <Layers size={15} /> Operating ({operatingCount})
+                    <Layers size={15} style={{ color: 'var(--color-operating)' }} /> Operating ({operatingCount})
                 </button>
             </div>
 
@@ -206,12 +257,20 @@ export const Transactions = () => {
                             ) : (
                                 displayedTransactions.map((tx) => {
                                     const isIncome = tx.type === 'income';
+                                    const isDirect = tx.type === 'direct';
+                                    const badgeClass = isIncome ? "badge-income" : isDirect ? "badge-direct" : "badge-operating";
+                                    const amountColor = isIncome 
+                                        ? 'var(--color-income, #10b981)' 
+                                        : isDirect 
+                                        ? 'var(--color-direct, #d97706)' 
+                                        : 'var(--color-operating, #ef4444)';
+
                                     return (
                                         <tr key={`${tx.type}-${tx.id}`}>
                                             <td>
-                                                <span className={isIncome ? "badge-blue" : "badge-outline"}>
-                                                    {isIncome ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
-                                                    {isIncome ? 'Income' : tx.type === 'direct' ? 'Direct Exp' : 'Operating'}
+                                                <span className={badgeClass}>
+                                                    {isIncome ? <ArrowUpRight size={12} /> : isDirect ? <ArrowDownRight size={12} /> : <Layers size={12} />}
+                                                    {isIncome ? 'Income' : isDirect ? 'Direct Exp' : 'Operating'}
                                                 </span>
                                             </td>
                                             <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
@@ -220,7 +279,7 @@ export const Transactions = () => {
                                             <td style={{ color: 'var(--text-secondary)' }}>
                                                 {tx.description || '—'}
                                             </td>
-                                            <td style={{ fontWeight: 700, color: isIncome ? 'var(--blue-600)' : 'var(--text-primary)', fontSize: '0.95rem' }}>
+                                            <td style={{ fontWeight: 700, color: amountColor, fontSize: '0.95rem' }}>
                                                 {isIncome ? '+' : '-'}{formatCurrency(tx.amount)}
                                             </td>
                                             <td style={{ color: 'var(--text-muted)', fontSize: '0.825rem' }}>
@@ -233,7 +292,7 @@ export const Transactions = () => {
                                                     style={{ padding: '0.45rem', border: '1px solid var(--border-subtle)' }}
                                                     title="Delete transaction (active session only)"
                                                 >
-                                                    <Trash2 size={15} style={{ color: 'var(--blue-600)' }} />
+                                                    <Trash2 size={15} style={{ color: 'var(--color-operating, #ef4444)' }} />
                                                 </button>
                                             </td>
                                         </tr>

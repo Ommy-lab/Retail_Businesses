@@ -143,69 +143,189 @@ export const Reports = () => {
 
             {/* Aggregated Period Metrics Cards */}
             <div className="metrics-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.25rem' }}>
-                <div className="blue-card" style={{ padding: '1.25rem 1.5rem' }}>
-                    <span style={{ fontSize: '0.725rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-muted)' }}>
-                        Period Total Incomes
-                    </span>
-                    <h3 style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--text-primary)', margin: '0.4rem 0 0' }}>
-                        {formatCurrency(aggregatedMetrics.income)}
-                    </h3>
-                    <div style={{ marginTop: '0.75rem', fontSize: '0.75rem', color: 'var(--blue-600)', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                        <ArrowUpRight size={13} /> {reports.length} Recorded Sessions
+                <div className="blue-card" style={{ 
+                    padding: '1.25rem 1.5rem', 
+                    display: 'flex', 
+                    flexDirection: 'column', 
+                    justifyContent: 'space-between',
+                    borderTop: '3px solid var(--color-income, #10b981)' 
+                }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <div>
+                            <span style={{ fontSize: '0.725rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--color-income, #10b981)' }}>
+                                Period Total Inflows
+                            </span>
+                            <h3 style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--color-income, #10b981)', margin: '0.4rem 0 0' }}>
+                                {formatCurrency(aggregatedMetrics.income)}
+                            </h3>
+                        </div>
+                        <div style={{
+                            padding: '0.5rem',
+                            borderRadius: 'var(--radius-md)',
+                            backgroundColor: 'var(--color-income-bg)',
+                            color: 'var(--color-income)',
+                            border: '1px solid var(--color-income-border)'
+                        }}>
+                            <ArrowUpRight size={18} />
+                        </div>
                     </div>
-                </div>
-
-                <div className="blue-card" style={{ padding: '1.25rem 1.5rem' }}>
-                    <span style={{ fontSize: '0.725rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-muted)' }}>
-                        Period Direct Expenses
-                    </span>
-                    <h3 style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--blue-800)', margin: '0.4rem 0 0' }}>
-                        {formatCurrency(aggregatedMetrics.direct)}
-                    </h3>
-                    <div style={{ marginTop: '0.75rem', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                        Wholesale & Goods Cost
-                    </div>
-                </div>
-
-                <div className="blue-card" style={{ padding: '1.25rem 1.5rem' }}>
-                    <span style={{ fontSize: '0.725rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-muted)' }}>
-                        Period Operating Exp
-                    </span>
-                    <h3 style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--text-secondary)', margin: '0.4rem 0 0' }}>
-                        {formatCurrency(aggregatedMetrics.operating)}
-                    </h3>
-                    <div style={{ marginTop: '0.75rem', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                        Rent, Overhead & Utilities
-                    </div>
-                </div>
-
-                <div className="blue-card" style={{ padding: '1.25rem 1.5rem' }}>
-                    <span style={{ fontSize: '0.725rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-muted)' }}>
-                        Period Gross Profit
-                    </span>
-                    <h3 style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--blue-600)', margin: '0.4rem 0 0' }}>
-                        {formatCurrency(aggregatedMetrics.gross)}
-                    </h3>
-                    <div style={{ marginTop: '0.75rem', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                        Revenue minus COGS
+                    <div style={{ marginTop: '0.75rem', paddingTop: '0.5rem', borderTop: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Revenue Volume</span>
+                        <span className="badge-income" style={{ fontSize: '0.65rem' }}>{reports.length} Sessions</span>
                     </div>
                 </div>
 
                 <div className="blue-card" style={{ 
-                    padding: '1.25rem 1.5rem',
-                    background: 'var(--blue-gradient-subtle)',
-                    border: '2px solid var(--blue-500)'
+                    padding: '1.25rem 1.5rem', 
+                    display: 'flex', 
+                    flexDirection: 'column', 
+                    justifyContent: 'space-between',
+                    borderTop: '3px solid var(--color-direct-accent, #f59e0b)' 
                 }}>
-                    <span style={{ fontSize: '0.725rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--blue-700)' }}>
-                        Period Net Profit
-                    </span>
-                    <h3 style={{ fontSize: '1.75rem', fontWeight: 900, color: 'var(--text-primary)', margin: '0.4rem 0 0' }}>
-                        {formatCurrency(aggregatedMetrics.net)}
-                    </h3>
-                    <div style={{ marginTop: '0.75rem', fontSize: '0.75rem', fontWeight: 600, color: 'var(--blue-700)' }}>
-                        Final Net Financial Bottom Line
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <div>
+                            <span style={{ fontSize: '0.725rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--color-direct, #d97706)' }}>
+                                Period Direct Costs
+                            </span>
+                            <h3 style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--color-direct, #d97706)', margin: '0.4rem 0 0' }}>
+                                {formatCurrency(aggregatedMetrics.direct)}
+                            </h3>
+                        </div>
+                        <div style={{
+                            padding: '0.5rem',
+                            borderRadius: 'var(--radius-md)',
+                            backgroundColor: 'var(--color-direct-bg)',
+                            color: 'var(--color-direct)',
+                            border: '1px solid var(--color-direct-border)'
+                        }}>
+                            <ArrowDownRight size={18} />
+                        </div>
+                    </div>
+                    <div style={{ marginTop: '0.75rem', paddingTop: '0.5rem', borderTop: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Wholesale & Stock</span>
+                        <span className="badge-direct" style={{ fontSize: '0.65rem' }}>Direct Cost</span>
                     </div>
                 </div>
+
+                <div className="blue-card" style={{ 
+                    padding: '1.25rem 1.5rem', 
+                    display: 'flex', 
+                    flexDirection: 'column', 
+                    justifyContent: 'space-between',
+                    borderTop: '3px solid var(--color-operating, #ef4444)' 
+                }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <div>
+                            <span style={{ fontSize: '0.725rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--color-operating, #ef4444)' }}>
+                                Period Operating Exp
+                            </span>
+                            <h3 style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--color-operating, #ef4444)', margin: '0.4rem 0 0' }}>
+                                {formatCurrency(aggregatedMetrics.operating)}
+                            </h3>
+                        </div>
+                        <div style={{
+                            padding: '0.5rem',
+                            borderRadius: 'var(--radius-md)',
+                            backgroundColor: 'var(--color-operating-bg)',
+                            color: 'var(--color-operating)',
+                            border: '1px solid var(--color-operating-border)'
+                        }}>
+                            <Layers size={18} />
+                        </div>
+                    </div>
+                    <div style={{ marginTop: '0.75rem', paddingTop: '0.5rem', borderTop: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Rent, Power, Wages</span>
+                        <span className="badge-operating" style={{ fontSize: '0.65rem' }}>Overhead</span>
+                    </div>
+                </div>
+
+                <div className="blue-card" style={{ 
+                    padding: '1.25rem 1.5rem', 
+                    display: 'flex', 
+                    flexDirection: 'column', 
+                    justifyContent: 'space-between',
+                    borderTop: '3px solid var(--color-gross, #2563eb)' 
+                }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <div>
+                            <span style={{ fontSize: '0.725rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--color-gross, #2563eb)' }}>
+                                Period Gross Profit
+                            </span>
+                            <h3 style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--color-gross, #2563eb)', margin: '0.4rem 0 0' }}>
+                                {formatCurrency(aggregatedMetrics.gross)}
+                            </h3>
+                        </div>
+                        <div style={{
+                            padding: '0.5rem',
+                            borderRadius: 'var(--radius-md)',
+                            backgroundColor: 'var(--color-gross-bg)',
+                            color: 'var(--color-gross)',
+                            border: '1px solid var(--color-gross-border)'
+                        }}>
+                            <TrendingUp size={18} />
+                        </div>
+                    </div>
+                    <div style={{ marginTop: '0.75rem', paddingTop: '0.5rem', borderTop: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Inflow - COGS</span>
+                        <span className="badge-gross" style={{ fontSize: '0.65rem' }}>Trading Margin</span>
+                    </div>
+                </div>
+
+                {(() => {
+                    const isNetPos = (aggregatedMetrics.net || 0) >= 0;
+                    return (
+                        <div className="blue-card" style={{ 
+                            padding: '1.25rem 1.5rem',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            justifyContent: 'space-between',
+                            backgroundColor: isNetPos ? 'var(--color-income-bg)' : 'var(--color-operating-bg)',
+                            border: isNetPos ? '2px solid var(--color-income, #10b981)' : '2px solid var(--color-operating, #ef4444)'
+                        }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                <div>
+                                    <span style={{ 
+                                        fontSize: '0.725rem', 
+                                        fontWeight: 800, 
+                                        textTransform: 'uppercase', 
+                                        color: isNetPos ? 'var(--color-income, #10b981)' : 'var(--color-operating, #ef4444)' 
+                                    }}>
+                                        {isNetPos ? 'Period Net Profit' : 'Period Net Loss'}
+                                    </span>
+                                    <h3 style={{ 
+                                        fontSize: '1.75rem', 
+                                        fontWeight: 900, 
+                                        color: isNetPos ? 'var(--color-income, #10b981)' : 'var(--color-operating, #ef4444)', 
+                                        margin: '0.4rem 0 0' 
+                                    }}>
+                                        {formatCurrency(aggregatedMetrics.net)}
+                                    </h3>
+                                </div>
+                                <div style={{
+                                    padding: '0.5rem',
+                                    borderRadius: 'var(--radius-md)',
+                                    background: isNetPos 
+                                        ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' 
+                                        : 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+                                    color: '#ffffff',
+                                    boxShadow: isNetPos 
+                                        ? '0 4px 12px rgba(16, 185, 129, 0.4)' 
+                                        : '0 4px 12px rgba(239, 68, 68, 0.4)'
+                                }}>
+                                    <DollarSign size={18} />
+                                </div>
+                            </div>
+                            <div style={{ marginTop: '0.75rem', paddingTop: '0.5rem', borderTop: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                <span style={{ fontSize: '0.75rem', fontWeight: 600, color: isNetPos ? 'var(--color-income, #10b981)' : 'var(--color-operating, #ef4444)' }}>
+                                    Gross - Operating
+                                </span>
+                                <span className={isNetPos ? "badge-income" : "badge-operating"} style={{ fontSize: '0.65rem' }}>
+                                    {isNetPos ? 'Net Surplus' : 'Net Deficit'}
+                                </span>
+                            </div>
+                        </div>
+                    );
+                })()}
             </div>
 
             {/* Session Breakdown Table */}
@@ -216,10 +336,10 @@ export const Reports = () => {
                             <tr>
                                 <th>Session Date</th>
                                 <th>Status</th>
-                                <th>Total Inflow</th>
-                                <th>Direct Exp</th>
-                                <th>Operating Exp</th>
-                                <th>Gross Profit</th>
+                                <th style={{ color: 'var(--color-income, #10b981)' }}>Total Inflow</th>
+                                <th style={{ color: 'var(--color-direct, #d97706)' }}>Direct Exp</th>
+                                <th style={{ color: 'var(--color-operating, #ef4444)' }}>Operating Exp</th>
+                                <th style={{ color: 'var(--color-gross, #2563eb)' }}>Gross Profit</th>
                                 <th>Net Profit</th>
                             </tr>
                         </thead>
@@ -241,33 +361,40 @@ export const Reports = () => {
                                     </td>
                                 </tr>
                             ) : (
-                                reports.map((row) => (
-                                    <tr key={row.session_id}>
-                                        <td style={{ fontWeight: 700, color: 'var(--text-primary)' }}>
-                                            {formatDate(row.date)}
-                                        </td>
-                                        <td>
-                                            <span className={row.status === 'open' ? "badge-blue" : "badge-outline"}>
-                                                {row.status === 'open' ? 'Active' : 'Closed'}
-                                            </span>
-                                        </td>
-                                        <td style={{ fontWeight: 600, color: 'var(--blue-600)' }}>
-                                            {formatCurrency(row.totalIncome)}
-                                        </td>
-                                        <td style={{ color: 'var(--blue-800)' }}>
-                                            {formatCurrency(row.totalDirectExp)}
-                                        </td>
-                                        <td style={{ color: 'var(--text-secondary)' }}>
-                                            {formatCurrency(row.totalOperatingExp)}
-                                        </td>
-                                        <td style={{ fontWeight: 700, color: 'var(--blue-600)' }}>
-                                            {formatCurrency(row.grossProfit)}
-                                        </td>
-                                        <td style={{ fontWeight: 800, color: 'var(--text-primary)', fontSize: '0.95rem' }}>
-                                            {formatCurrency(row.netProfit)}
-                                        </td>
-                                    </tr>
-                                ))
+                                reports.map((row) => {
+                                    const isRowNetPos = (row.netProfit || 0) >= 0;
+                                    return (
+                                        <tr key={row.session_id}>
+                                            <td style={{ fontWeight: 700, color: 'var(--text-primary)' }}>
+                                                {formatDate(row.date)}
+                                            </td>
+                                            <td>
+                                                <span className={row.status === 'open' ? "badge-income" : "badge-outline"}>
+                                                    {row.status === 'open' ? 'Active Session' : 'Closed & Locked'}
+                                                </span>
+                                            </td>
+                                            <td style={{ fontWeight: 700, color: 'var(--color-income, #10b981)' }}>
+                                                +{formatCurrency(row.totalIncome)}
+                                            </td>
+                                            <td style={{ fontWeight: 700, color: 'var(--color-direct, #d97706)' }}>
+                                                -{formatCurrency(row.totalDirectExp)}
+                                            </td>
+                                            <td style={{ fontWeight: 700, color: 'var(--color-operating, #ef4444)' }}>
+                                                -{formatCurrency(row.totalOperatingExp)}
+                                            </td>
+                                            <td style={{ fontWeight: 800, color: 'var(--color-gross, #2563eb)' }}>
+                                                {formatCurrency(row.grossProfit)}
+                                            </td>
+                                            <td style={{ 
+                                                fontWeight: 800, 
+                                                color: isRowNetPos ? 'var(--color-income, #10b981)' : 'var(--color-operating, #ef4444)', 
+                                                fontSize: '0.95rem' 
+                                            }}>
+                                                {isRowNetPos ? '+' : ''}{formatCurrency(row.netProfit)}
+                                            </td>
+                                        </tr>
+                                    );
+                                })
                             )}
                         </tbody>
                     </table>
