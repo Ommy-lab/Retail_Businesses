@@ -18,10 +18,10 @@ app.use(cors());
 app.use(express.json());
 
 // API Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/admin', adminRoutes);
-app.use('/api/business', businessRoutes);
-app.use('/api/business/reports', reportRoutes);
+app.use('/auth', authRoutes);
+app.use('/admin', adminRoutes);
+app.use('/business', businessRoutes);
+app.use('/business/reports', reportRoutes);
 
 // Health Check Root Endpoint
 app.get('/', (req, res) => {
